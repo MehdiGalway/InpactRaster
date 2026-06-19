@@ -1,0 +1,2115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ireland Greenhouse Gas Policy Impact Explorer</title>
+
+<!-- Bootstrap 5 -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Bootstrap Icons -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<!-- Leaflet -->
+<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --emerald:#00843D;
+  --emerald-dark:#006B31;
+  --emerald-light:#E6F4EC;
+  --navy:#16324F;
+  --navy-soft:#244A6E;
+  --teal:#0E8C8A;
+  --teal-light:#E3F3F3;
+  --grey-bg:#F4F6F8;
+  --grey-panel:#FAFBFC;
+  --grey-border:#E2E8EE;
+  --text-main:#1C2B3A;
+  --text-muted:#5C6B7A;
+  --amber:#E8A33D;
+  --red:#C84B3C;
+  --shadow-sm:0 1px 3px rgba(22,50,79,.08), 0 1px 2px rgba(22,50,79,.05);
+  --shadow-md:0 4px 14px rgba(22,50,79,.10);
+  --shadow-lg:0 10px 30px rgba(22,50,79,.14);
+  --radius:14px;
+  --header-h:132px;  /* height of the sticky header; sidebar & tab-nav offset by this */
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:"Source Sans 3",-apple-system,Segoe UI,Roboto,sans-serif;
+  background:
+    radial-gradient(1200px 500px at 85% -10%, rgba(0,132,61,.06), transparent 60%),
+    radial-gradient(900px 400px at -10% 30%, rgba(14,140,138,.06), transparent 60%),
+    var(--grey-bg);
+  color:var(--text-main);
+  margin:0;
+}
+.mono{font-family:"IBM Plex Mono",monospace}
+
+/* ============ HEADER ============ */
+.app-header{
+  background:#fff;
+  color:var(--text-main);
+  height:var(--header-h);
+  padding:0 1.6rem;
+  position:sticky;top:0;z-index:1100;
+  box-shadow:var(--shadow-md);
+  display:flex;align-items:center;
+}
+.header-inner{
+  display:flex;align-items:center;gap:1.5rem;
+  max-width:1320px;margin:0 auto;width:100%;
+}
+/* INPACT logo — top left */
+.brand-inpact{flex:0 0 auto;display:flex;align-items:center;text-decoration:none}
+.brand-inpact img{
+  height:calc(var(--header-h) - 38px);width:auto;display:block;
+}
+/* Title block — centre */
+.header-text{flex:1 1 auto;min-width:0;padding-left:1.4rem;border-left:1px solid var(--grey-border)}
+.app-title{font-weight:800;font-size:1.4rem;line-height:1.14;margin:0;color:var(--navy)}
+.app-title .accent{color:var(--teal)}
+.app-subtitle{font-size:.86rem;line-height:1.3;margin:.32rem 0 0;color:var(--text-muted);max-width:660px}
+/* EPA funder — top right */
+.brand-funder{
+  flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:.3rem;
+  padding-left:1.4rem;border-left:1px solid var(--grey-border);
+}
+.brand-funder .funded-by{
+  font-size:.64rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--text-muted);
+}
+.brand-funder img{height:calc(var(--header-h) - 66px);width:auto;display:block}
+
+@media (max-width:991px){
+  :root{--header-h:116px}
+  .app-title{font-size:1.18rem}
+  .app-subtitle{font-size:.8rem}
+}
+@media (max-width:767px){
+  /* On phones show just the two logos; INPACT mark already carries the name + tagline */
+  .header-text{display:none}
+}
+@media (max-width:575px){
+  :root{--header-h:92px}
+  .brand-funder .funded-by{display:none}
+}
+
+/* ============ LAYOUT ============ */
+.app-shell{display:flex;align-items:flex-start;gap:0}
+.sidebar{
+  width:272px;flex:0 0 272px;
+  background:#fff;
+  border-right:1px solid var(--grey-border);
+  min-height:calc(100vh - var(--header-h));
+  padding:1rem .9rem 2rem;
+  position:sticky;top:var(--header-h);
+  max-height:calc(100vh - var(--header-h));
+  overflow-y:auto;
+}
+.main-area{flex:1;min-width:0;padding:1.1rem 1.2rem 2rem}
+
+/* ============ PANELS / CARDS ============ */
+.panel{
+  background:rgba(255,255,255,.82);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(226,232,238,.9);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow-sm);
+  margin-bottom:1.1rem;
+  overflow:hidden;
+}
+.panel-head{
+  display:flex;align-items:center;gap:.6rem;
+  padding:.85rem 1.1rem;
+  border-bottom:1px solid var(--grey-border);
+  background:linear-gradient(180deg,rgba(250,251,252,.9),rgba(255,255,255,.6));
+}
+.panel-num{
+  width:26px;height:26px;border-radius:50%;
+  background:var(--navy);color:#fff;
+  font-size:.72rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex:0 0 26px;
+}
+.panel-title{
+  font-size:.82rem;font-weight:800;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--navy);margin:0;
+}
+.panel-body{padding:1rem 1.1rem}
+
+/* ============ SIDEBAR FILTERS ============ */
+.filter-block{margin-bottom:.65rem;border:1px solid var(--grey-border);border-radius:12px;overflow:hidden;background:var(--grey-panel)}
+.filter-toggle{
+  width:100%;border:0;background:transparent;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.65rem .8rem;font-size:.74rem;font-weight:800;
+  letter-spacing:.7px;text-transform:uppercase;color:var(--navy);
+  cursor:pointer;
+}
+.filter-toggle .bi-chevron-down{transition:transform .25s}
+.filter-toggle[aria-expanded="false"] .bi-chevron-down{transform:rotate(-90deg)}
+.filter-body{padding:.2rem .8rem .8rem}
+.form-check{margin-bottom:.3rem}
+.form-check-label{font-size:.84rem;color:var(--text-main)}
+.form-check-input:checked{background-color:var(--emerald);border-color:var(--emerald)}
+.form-check-input:focus{box-shadow:0 0 0 .2rem rgba(0,132,61,.18);border-color:var(--emerald)}
+.form-select-sm,.form-control-sm{font-size:.82rem}
+.form-select:focus,.form-control:focus{border-color:var(--emerald);box-shadow:0 0 0 .2rem rgba(0,132,61,.15)}
+.indicator-seg{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
+.indicator-seg .btn{font-size:.76rem;font-weight:600;padding:.32rem .2rem}
+.btn-check:checked + .btn-outline-success{background:var(--emerald);border-color:var(--emerald);color:#fff}
+.btn-outline-success{--bs-btn-color:var(--emerald);--bs-btn-border-color:#BBDCC9;--bs-btn-hover-bg:var(--emerald-light);--bs-btn-hover-color:var(--emerald-dark);--bs-btn-hover-border-color:var(--emerald)}
+.year-readout{display:flex;justify-content:space-between;font-size:.78rem;font-weight:700;color:var(--navy)}
+input[type=range]{accent-color:var(--emerald);width:100%}
+.sidebar-footer-note{font-size:.7rem;color:var(--text-muted);margin-top:1rem;line-height:1.45}
+
+/* ============ CHART PANEL ============ */
+.chart-toolbar .btn{
+  font-size:.74rem;font-weight:600;padding:.22rem .55rem;
+  border-color:var(--grey-border);color:var(--navy);background:#fff;
+}
+.chart-toolbar .btn:hover{background:var(--emerald-light);border-color:var(--emerald);color:var(--emerald-dark)}
+.chart-wrap{position:relative;height:380px}
+.chart-kpis{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:.9rem}
+.mini-kpi{
+  flex:1;min-width:150px;
+  background:var(--grey-panel);
+  border:1px solid var(--grey-border);
+  border-radius:12px;padding:.6rem .8rem;
+}
+.mini-kpi .lbl{font-size:.66rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted)}
+.mini-kpi .val{font-size:1.25rem;font-weight:800;color:var(--navy)}
+.mini-kpi .val.down{color:var(--emerald)}
+.mini-kpi .sub{font-size:.7rem;color:var(--text-muted)}
+
+/* ============ MAP PANEL ============ */
+#map{height:480px;border-radius:0 0 var(--radius) var(--radius);z-index:1}
+.map-legend{
+  background:rgba(255,255,255,.92);backdrop-filter:blur(6px);
+  border-radius:10px;padding:.55rem .7rem;
+  box-shadow:var(--shadow-md);font-size:.72rem;line-height:1.7;
+  border:1px solid var(--grey-border);
+}
+.map-legend .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:baseline}
+.leaflet-popup-content{font-family:"Source Sans 3",sans-serif;font-size:.8rem}
+.popup-title{font-weight:800;color:var(--navy);font-size:.9rem;margin-bottom:.15rem}
+.popup-row{display:flex;justify-content:space-between;gap:1rem;padding:.12rem 0;border-bottom:1px dashed var(--grey-border)}
+.popup-row:last-child{border-bottom:0}
+.popup-row .k{color:var(--text-muted)}
+.popup-row .v{font-weight:700;color:var(--navy)}
+.badge-score{background:var(--emerald-light);color:var(--emerald-dark);font-weight:800;border-radius:6px;padding:.1rem .4rem}
+.station-icon{
+  width:14px;height:14px;border-radius:50%;
+  background:var(--teal);border:2.5px solid #fff;
+  box-shadow:0 0 0 2px rgba(14,140,138,.5),0 2px 5px rgba(0,0,0,.3);
+}
+.hotspot-icon{
+  width:0;height:0;position:relative;
+}
+.hotspot-icon::before{
+  content:"\F33A";font-family:"bootstrap-icons";
+  position:absolute;left:-11px;top:-11px;
+  font-size:14px;color:#fff;
+  background:var(--red);width:22px;height:22px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);
+}
+.map-fs-btn{
+  background:#fff;border:2px solid rgba(0,0,0,.2);border-radius:4px;
+  width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:1rem;color:var(--navy);
+}
+.map-fs-btn:hover{background:var(--grey-bg)}
+
+/* ---- Raster overlay selector bar ---- */
+.raster-bar{
+  display:flex;flex-wrap:wrap;align-items:flex-end;gap:.6rem;
+  padding:.6rem .85rem;background:var(--grey-panel);
+  border-top:1px solid var(--grey-border);border-bottom:1px solid var(--grey-border);
+}
+.raster-field{display:flex;flex-direction:column;gap:.2rem;min-width:120px;flex:1 1 120px}
+.raster-field label{
+  font-size:.66rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--text-muted);
+}
+.raster-clear{
+  border:1px solid var(--grey-border);background:#fff;color:var(--navy);
+  border-radius:8px;padding:.3rem .6rem;font-size:.74rem;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;gap:.3rem;height:31px;
+}
+.raster-clear:hover:not(:disabled){background:var(--grey-bg)}
+.raster-clear:disabled{opacity:.45;cursor:not-allowed}
+.raster-status{flex-basis:100%;font-size:.72rem;color:var(--text-muted);min-height:1em}
+.raster-status.warn{color:var(--red);font-weight:600}
+
+/* ---- Colour-bar legend for the raster overlay ---- */
+.raster-colorbar{
+  background:rgba(255,255,255,.94);backdrop-filter:blur(6px);
+  border-radius:10px;padding:.5rem .6rem;box-shadow:var(--shadow-md);
+  border:1px solid var(--grey-border);font-size:.7rem;color:var(--navy);
+  max-width:190px;
+}
+.raster-colorbar .cb-title{font-weight:800;font-size:.72rem;margin-bottom:.35rem;line-height:1.2}
+.raster-colorbar .cb-row{display:flex;align-items:stretch;gap:.45rem;height:96px}
+.raster-colorbar .cb-gradient{
+  width:16px;border-radius:4px;border:1px solid rgba(0,0,0,.15);
+}
+.raster-colorbar .cb-ticks{
+  display:flex;flex-direction:column;justify-content:space-between;
+  font-variant-numeric:tabular-nums;font-size:.66rem;color:var(--text-muted);
+}
+.raster-colorbar .cb-note{margin-top:.35rem;font-size:.64rem;color:var(--text-muted)}
+
+/* ============ POLICY INTELLIGENCE ============ */
+.kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem}
+.kpi-card{
+  background:linear-gradient(160deg,#fff,var(--grey-panel));
+  border:1px solid var(--grey-border);
+  border-radius:12px;padding:.75rem .85rem;
+  box-shadow:var(--shadow-sm);
+}
+.kpi-card .lbl{font-size:.64rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted)}
+.kpi-card .val{font-size:1.45rem;font-weight:800;color:var(--navy);line-height:1.1}
+.kpi-card .val.green{color:var(--emerald)}
+.kpi-card .sub{font-size:.68rem;color:var(--text-muted)}
+.policy-meta{font-size:.82rem}
+.policy-meta .row-line{display:flex;justify-content:space-between;padding:.32rem 0;border-bottom:1px dashed var(--grey-border)}
+.policy-meta .k{color:var(--text-muted)}
+.policy-meta .v{font-weight:700;color:var(--navy);text-align:right}
+.conf-badge{background:var(--emerald);color:#fff;border-radius:6px;padding:.08rem .5rem;font-weight:800;font-size:.74rem}
+.narrative{
+  background:var(--teal-light);
+  border-left:4px solid var(--teal);
+  border-radius:8px;padding:.8rem .9rem;
+  font-size:.82rem;line-height:1.55;
+}
+.narrative ul{padding-left:1.1rem;margin:.4rem 0 0}
+.narrative li{margin-bottom:.3rem}
+.policy-select-label{font-size:.7rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted)}
+
+/* policy jurisdiction checkboxes */
+.pol-check{display:flex;align-items:center;gap:.5rem;font-size:.82rem;font-weight:600;color:var(--text-main);padding:.28rem 0;cursor:pointer;user-select:none}
+.pol-check input{width:15px;height:15px;accent-color:var(--emerald);cursor:pointer;margin:0}
+.pol-check .sw{width:11px;height:11px;border-radius:3px;display:inline-block;flex:0 0 auto}
+.pol-check .cnt{margin-left:auto;font-size:.7rem;font-weight:700;color:var(--text-muted);background:var(--grey-bg);border:1px solid var(--grey-border);border-radius:20px;padding:.02rem .42rem}
+.sidebar-footer-note .sw{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle}
+/* inline category key under the chart title */
+.cat-key{display:flex;gap:.8rem;flex-wrap:wrap;font-size:.7rem;font-weight:600;color:var(--text-muted)}
+.cat-key .k{display:inline-flex;align-items:center;gap:.32rem}
+.cat-key .d{width:14px;height:0;border-top:2px dashed currentColor;display:inline-block}
+
+/* ============ TIMELINE ============ */
+.timeline-scroll{overflow-x:auto;padding:1.6rem .4rem 1rem;scrollbar-width:thin}
+.timeline-track{
+  display:flex;align-items:flex-start;gap:0;min-width:2300px;position:relative;
+  padding-top:14px;
+}
+.timeline-track::before{
+  content:"";position:absolute;left:18px;right:18px;top:21px;height:4px;
+  background:linear-gradient(90deg,var(--navy) 0%,var(--teal) 45%,var(--emerald) 80%,#7FE0A8 100%);
+  border-radius:2px;
+}
+.tl-node{
+  flex:1;min-width:88px;position:relative;text-align:center;cursor:pointer;
+  padding-top:26px;transition:transform .2s;
+  background:none;border:0;
+}
+.tl-dot{
+  width:16px;height:16px;border-radius:50%;
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  border:3px solid #fff;box-shadow:0 0 0 2px currentColor,0 2px 5px rgba(0,0,0,.2);
+  transition:transform .2s, box-shadow .2s;
+  background:currentColor;
+}
+.tl-node:hover .tl-dot,.tl-node:focus-visible .tl-dot{transform:translateX(-50%) scale(1.45)}
+.tl-node:hover{transform:translateY(-3px)}
+.tl-node.active .tl-dot{transform:translateX(-50%) scale(1.55);box-shadow:0 0 0 4px rgba(0,132,61,.25),0 3px 8px rgba(0,0,0,.3)}
+.tl-year{font-size:.74rem;font-weight:800;color:var(--navy)}
+.tl-name{font-size:.66rem;color:var(--text-muted);line-height:1.25;margin-top:.1rem;display:block}
+.tl-node.active .tl-name{color:var(--emerald-dark);font-weight:700}
+.tl-intl{color:var(--navy)}
+.tl-eu{color:var(--teal)}
+.tl-natl{color:var(--emerald)}
+.tl-target{color:var(--amber)}
+.tl-phases{display:flex;gap:1.1rem;flex-wrap:wrap;font-size:.72rem;font-weight:600;color:var(--text-muted);padding:0 .4rem .2rem}
+.tl-phases .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+
+/* ============ PARTICIPATION ============ */
+.participation-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem}
+.p-stat{background:var(--grey-panel);border:1px solid var(--grey-border);border-radius:12px;padding:.7rem;text-align:center}
+.p-stat .val{font-size:1.4rem;font-weight:800;color:var(--emerald)}
+.p-stat .lbl{font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted)}
+.rating-readout{font-weight:800;color:var(--emerald);font-size:1.05rem;min-width:34px;text-align:center}
+.btn-submit{
+  background:var(--emerald);border-color:var(--emerald);font-weight:700;
+}
+.btn-submit:hover{background:var(--emerald-dark);border-color:var(--emerald-dark)}
+
+/* ============ TARGETS ============ */
+.targets-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:.9rem}
+.target-card{
+  border-radius:var(--radius);padding:1.1rem 1rem;
+  background:rgba(255,255,255,.85);backdrop-filter:blur(8px);
+  border:1px solid var(--grey-border);
+  box-shadow:var(--shadow-sm);
+  position:relative;overflow:hidden;
+  transition:transform .2s, box-shadow .2s;
+}
+.target-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.target-card::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:5px;
+  background:linear-gradient(180deg,var(--emerald),var(--teal));
+}
+.target-card .big{font-size:1.9rem;font-weight:800;color:var(--emerald);line-height:1.05}
+.target-card .big.navy{color:var(--navy)}
+.target-card .desc{font-size:.78rem;color:var(--text-muted);font-weight:600;margin-top:.25rem}
+.target-card .icon{position:absolute;right:.8rem;top:.7rem;font-size:1.3rem;color:var(--emerald-light);opacity:.9}
+
+/* ============ FOOTER ============ */
+.app-footer{
+  background:var(--navy);color:#C8D6E2;
+  padding:1.4rem 1.6rem;font-size:.8rem;margin-top:.5rem;
+}
+.app-footer a{color:#9FE8C2;text-decoration:none}
+.app-footer a:hover{text-decoration:underline;color:#fff}
+.footer-links{display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1199px){
+  .app-shell{flex-direction:column}
+  .sidebar{width:100%;flex:1 1 auto;position:static;min-height:0;max-height:none;border-right:0;border-bottom:1px solid var(--grey-border)}
+}
+@media (max-width: 767px){
+  .chart-wrap{height:300px}
+  #map{height:380px}
+  .kpi-grid,.participation-stats{grid-template-columns:1fr 1fr}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important;animation:none!important}
+  html{scroll-behavior:auto}
+}
+
+/* ============ TAB NAVIGATION ============ */
+.tab-nav{
+  background:#fff;
+  border-bottom:1px solid var(--grey-border);
+  box-shadow:var(--shadow-sm);
+  position:sticky;top:var(--header-h);z-index:1090;
+  padding:0 1.2rem;
+  display:flex;gap:.2rem;flex-wrap:wrap;
+}
+.tab-nav .tab-btn{
+  border:0;background:transparent;
+  font-family:inherit;font-size:.84rem;font-weight:700;
+  letter-spacing:.4px;
+  color:var(--text-muted);
+  padding:.95rem 1.15rem .85rem;
+  border-bottom:3px solid transparent;
+  cursor:pointer;display:flex;align-items:center;gap:.5rem;
+  transition:color .2s, border-color .2s, background .2s;
+}
+.tab-nav .tab-btn:hover{color:var(--navy);background:var(--grey-panel)}
+.tab-nav .tab-btn.active{color:var(--emerald-dark);border-bottom-color:var(--emerald)}
+.tab-nav .tab-btn i{font-size:1rem}
+.tab-pane{display:none}
+.tab-pane.active{display:block;animation:tabfade .35s ease}
+@keyframes tabfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (max-width:575px){
+  .tab-nav{padding:0 .5rem}
+  .tab-nav .tab-btn{padding:.8rem .7rem;font-size:.78rem}
+  .tab-nav .tab-btn span.tab-label-long{display:none}
+}
+
+/* ============ ABOUT TAB ============ */
+.about-wrap{max-width:1180px;margin:0 auto;padding:1.6rem 1.4rem 2.5rem}
+.about-banner{
+  width:100%;
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:var(--shadow-md);
+  margin-bottom:1.4rem;
+  line-height:0;
+  background:#fff;
+}
+.about-banner img{display:block;width:100%;height:auto}
+.about-hero{
+  background:linear-gradient(115deg,var(--navy) 0%,#1D4264 55%,#1B5E48 100%);
+  color:#fff;border-radius:var(--radius);
+  padding:2.3rem 2rem;margin-bottom:1.4rem;
+  box-shadow:var(--shadow-md);position:relative;overflow:hidden;
+}
+.about-hero::after{
+  content:"";position:absolute;right:-60px;top:-60px;
+  width:280px;height:280px;border-radius:50%;
+  background:radial-gradient(circle,rgba(127,224,168,.18),transparent 70%);
+}
+.about-hero .eyebrow{
+  font-size:.74rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:#7FE0A8;margin-bottom:.5rem;
+}
+.about-hero h2{font-size:1.85rem;font-weight:800;line-height:1.15;margin:0 0 .7rem;max-width:760px}
+.about-hero p{font-size:1rem;line-height:1.6;opacity:.92;margin:0;max-width:820px}
+.about-section{
+  background:rgba(255,255,255,.86);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(226,232,238,.9);
+  border-radius:var(--radius);box-shadow:var(--shadow-sm);
+  padding:1.6rem 1.7rem;margin-bottom:1.2rem;
+}
+.about-section h3{
+  font-size:1.28rem;font-weight:800;color:var(--navy);
+  margin:0 0 .9rem;display:flex;align-items:center;gap:.6rem;
+}
+.about-section h3 .sec-icon{
+  width:38px;height:38px;border-radius:10px;flex:0 0 38px;
+  background:var(--emerald-light);color:var(--emerald-dark);
+  display:flex;align-items:center;justify-content:center;font-size:1.15rem;
+}
+.about-section p{font-size:.96rem;line-height:1.65;color:var(--text-main);margin:0 0 .9rem}
+.about-section p:last-child{margin-bottom:0}
+.about-question{
+  background:var(--emerald-light);border-left:4px solid var(--emerald);
+  border-radius:10px;padding:1rem 1.2rem;margin:1rem 0;
+  font-size:1.05rem;font-weight:700;color:var(--emerald-dark);line-height:1.45;
+}
+.about-list{list-style:none;padding:0;margin:.4rem 0 0}
+.about-list li{
+  position:relative;padding:.5rem 0 .5rem 2rem;
+  font-size:.95rem;line-height:1.55;color:var(--text-main);
+  border-bottom:1px dashed var(--grey-border);
+}
+.about-list li:last-child{border-bottom:0}
+.about-list li::before{
+  content:"\F26A";font-family:"bootstrap-icons";
+  position:absolute;left:0;top:.5rem;color:var(--emerald);font-size:1rem;
+}
+.data-chips{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.4rem}
+.data-chip{
+  display:inline-flex;align-items:center;gap:.45rem;
+  background:var(--teal-light);color:#0A6B69;
+  border:1px solid #BfE6E5;border-radius:999px;
+  padding:.5rem .95rem;font-size:.86rem;font-weight:600;
+}
+.data-chip i{font-size:.95rem}
+.why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:.4rem}
+.why-card{
+  background:var(--grey-panel);border:1px solid var(--grey-border);
+  border-radius:12px;padding:1.1rem;
+}
+.why-card .q{font-weight:800;color:var(--navy);font-size:.95rem;margin-bottom:.3rem}
+.why-card .a{font-size:.88rem;color:var(--text-muted);line-height:1.5}
+
+/* Team */
+.team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:1rem;margin-top:.6rem}
+.team-card{
+  background:#fff;border:1px solid var(--grey-border);
+  border-radius:14px;padding:1.2rem;
+  box-shadow:var(--shadow-sm);transition:transform .2s, box-shadow .2s;
+  display:flex;flex-direction:column;
+}
+.team-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+.team-card .who{display:flex;align-items:center;gap:.85rem;margin-bottom:.7rem}
+.team-avatar{
+  width:68px;height:68px;border-radius:50%;flex:0 0 68px;
+  overflow:hidden;
+  background:linear-gradient(135deg,var(--emerald),var(--teal));
+  color:#fff;font-weight:800;font-size:1.25rem;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid #fff;box-shadow:var(--shadow-sm);
+}
+.team-avatar img{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+.team-card .name{font-weight:800;color:var(--navy);font-size:1.02rem;line-height:1.2}
+.team-card .role{
+  font-size:.76rem;font-weight:700;letter-spacing:.3px;
+  color:var(--emerald-dark);text-transform:uppercase;margin-top:.15rem;
+}
+.team-card .role .org{display:block;color:var(--text-muted);font-weight:600;text-transform:none;letter-spacing:0;font-size:.78rem;margin-top:.1rem}
+.team-card .bio{font-size:.88rem;line-height:1.55;color:var(--text-main);margin:0}
+.team-card.pi{border-color:var(--emerald);box-shadow:0 0 0 1px var(--emerald-light), var(--shadow-sm)}
+.pi-badge{
+  display:inline-block;margin-left:.4rem;font-size:.62rem;font-weight:800;
+  letter-spacing:.5px;text-transform:uppercase;color:#fff;background:var(--emerald);
+  padding:.1rem .45rem;border-radius:6px;vertical-align:middle;
+}
+.about-closing{
+  background:linear-gradient(115deg,#1B5E48,#0E8C8A);
+  color:#fff;border-radius:var(--radius);
+  padding:1.8rem 2rem;text-align:center;box-shadow:var(--shadow-md);
+}
+.about-closing h3{color:#fff;justify-content:center;margin-bottom:.6rem}
+.about-closing p{color:rgba(255,255,255,.94);max-width:760px;margin:0 auto;font-size:.98rem;line-height:1.6}
+
+/* ============ FEEDBACK TAB ============ */
+.fb-wrap{max-width:980px;margin:0 auto;padding:1.6rem 1.4rem 2.5rem}
+.fb-intro{
+  background:linear-gradient(115deg,var(--navy) 0%,#1D4264 60%,#1B5E48 100%);
+  color:#fff;border-radius:var(--radius);
+  padding:1.8rem 2rem;margin-bottom:1.3rem;box-shadow:var(--shadow-md);
+}
+.fb-intro .eyebrow{font-size:.74rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#7FE0A8;margin-bottom:.45rem}
+.fb-intro h2{font-size:1.55rem;font-weight:800;margin:0 0 .55rem}
+.fb-intro p{font-size:.95rem;line-height:1.6;opacity:.92;margin:0;max-width:760px}
+.fb-card{
+  background:#fff;border:1px solid var(--grey-border);
+  border-radius:var(--radius);box-shadow:var(--shadow-sm);
+  padding:1.6rem 1.7rem;margin-bottom:1.2rem;
+}
+.fb-field{margin-bottom:1.3rem}
+.fb-field > label.fb-label,.fb-label{
+  display:block;font-weight:800;color:var(--navy);
+  font-size:.92rem;margin-bottom:.55rem;
+}
+.fb-label .req{color:var(--red);margin-left:.2rem}
+.fb-hint{font-size:.78rem;color:var(--text-muted);margin-top:.35rem;line-height:1.4}
+.fb-choices{display:flex;flex-wrap:wrap;gap:.6rem}
+.fb-choice{
+  position:relative;
+}
+.fb-choice input{position:absolute;opacity:0;pointer-events:none}
+.fb-choice label{
+  display:inline-flex;align-items:center;gap:.45rem;
+  border:1.5px solid var(--grey-border);background:var(--grey-panel);
+  border-radius:10px;padding:.55rem 1rem;font-size:.9rem;font-weight:600;
+  color:var(--text-main);cursor:pointer;transition:all .15s;
+}
+.fb-choice input:checked + label{
+  border-color:var(--emerald);background:var(--emerald-light);
+  color:var(--emerald-dark);box-shadow:0 0 0 1px var(--emerald);
+}
+.fb-choice input:focus-visible + label{box-shadow:0 0 0 .2rem rgba(0,132,61,.25)}
+.fb-rating-row{display:flex;align-items:center;gap:1rem}
+.fb-rating-row input[type=range]{flex:1}
+.fb-rating-big{
+  font-size:1.4rem;font-weight:800;color:var(--emerald);
+  min-width:48px;text-align:center;
+  background:var(--emerald-light);border-radius:10px;padding:.25rem 0;
+}
+.fb-scale{display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-muted);margin-top:.3rem}
+.fb-submit-row{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-top:.4rem}
+.fb-status{font-size:.88rem;font-weight:600;display:none}
+.fb-status.ok{display:inline-flex;align-items:center;gap:.4rem;color:var(--emerald-dark)}
+.fb-status.err{display:inline-flex;align-items:center;gap:.4rem;color:var(--red)}
+.fb-status.sending{display:inline-flex;align-items:center;gap:.4rem;color:var(--text-muted)}
+.fb-admin{
+  background:var(--grey-panel);border:1px solid var(--grey-border);
+  border-radius:12px;padding:1.1rem 1.3rem;
+  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+}
+.fb-admin .ico{
+  width:42px;height:42px;border-radius:10px;flex:0 0 42px;
+  background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2rem;
+}
+.fb-admin .txt{flex:1;min-width:200px}
+.fb-admin .txt b{color:var(--navy);font-size:.95rem}
+.fb-admin .txt p{margin:.2rem 0 0;font-size:.8rem;color:var(--text-muted);line-height:1.45}
+.fb-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-top:.3rem}
+@media (max-width:575px){.fb-stats-row{grid-template-columns:1fr}}
+
+</style>
+</head>
+<body>
+
+<!-- ================= HEADER ================= -->
+<header class="app-header">
+  <div class="header-inner">
+    <a class="brand-inpact" href="#" onclick="return false"
+       title="INPACT — Investigating National Policy Impacts on Atmospheric Climate Targets">
+      <img src="/static/img/inpact-mark.png"
+           alt="INPACT — Investigating National Policy Impacts on Atmospheric Climate Targets">
+    </a>
+    <div class="header-text">
+      <h1 class="app-title"><span class="accent">Ireland</span> Greenhouse Gas Policy Impact Explorer</h1>
+      <p class="app-subtitle">Explore greenhouse gas emissions, atmospheric pollutants, climate policies and policy effectiveness across Ireland.</p>
+    </div>
+    <div class="brand-funder">
+      <span class="funded-by">Funded by</span>
+      <img src="/static/img/epa-logo.png"
+           alt="Funded by the Environmental Protection Agency (EPA)">
+    </div>
+  </div>
+</header>
+
+<!-- ================= TAB NAVIGATION ================= -->
+<nav class="tab-nav" role="tablist" aria-label="Dashboard sections">
+  <button class="tab-btn active" role="tab" aria-selected="true" data-tab="explorer">
+    <i class="bi bi-graph-up-arrow"></i><span>Explorer<span class="tab-label-long"> Dashboard</span></span>
+  </button>
+  <button class="tab-btn" role="tab" aria-selected="false" data-tab="about">
+    <i class="bi bi-info-circle"></i><span>About<span class="tab-label-long"> INPACT</span></span>
+  </button>
+  <button class="tab-btn" role="tab" aria-selected="false" data-tab="feedback">
+    <i class="bi bi-chat-square-text"></i><span>Feedback</span>
+  </button>
+</nav>
+
+<!-- ================= TAB: EXPLORER ================= -->
+<div class="tab-pane active" id="tab-explorer" role="tabpanel">
+<div class="app-shell">
+
+  <!-- ================= LEFT SIDEBAR ================= -->
+  <aside class="sidebar" aria-label="Filters and selections">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <span class="panel-num">1</span>
+      <h2 class="panel-title">Filters &amp; Selections</h2>
+    </div>
+
+    <!-- Sector filter -->
+    <div class="filter-block">
+      <button class="filter-toggle" data-bs-toggle="collapse" data-bs-target="#fSector" aria-expanded="true">
+        Sector Filter <i class="bi bi-chevron-down"></i>
+      </button>
+      <div id="fSector" class="collapse show"><div class="filter-body" id="sectorChecks">
+        <div class="form-check"><input class="form-check-input sector-cb" type="checkbox" value="Agriculture" id="sAgri"><label class="form-check-label" for="sAgri">Agriculture</label></div>
+        <div class="form-check"><input class="form-check-input sector-cb" type="checkbox" value="Energy" id="sEner"><label class="form-check-label" for="sEner">Energy</label></div>
+        <div class="form-check"><input class="form-check-input sector-cb" type="checkbox" value="Transport" id="sTran"><label class="form-check-label" for="sTran">Transport</label></div>
+        <div class="form-check"><input class="form-check-input sector-cb" type="checkbox" value="Residential" id="sResi"><label class="form-check-label" for="sResi">Residential</label></div>
+        <div class="form-check"><input class="form-check-input sector-cb" type="checkbox" value="Industry" id="sIndu"><label class="form-check-label" for="sIndu">Industry</label></div>
+        <div class="form-check"><input class="form-check-input sector-cb" type="checkbox" value="Waste" id="sWast"><label class="form-check-label" for="sWast">Waste</label></div>
+        <div class="form-check"><input class="form-check-input sector-cb" type="checkbox" value="National Total" id="sNatl" checked><label class="form-check-label fw-bold" for="sNatl">National Total</label></div>
+      </div></div>
+    </div>
+
+    <!-- Indicator -->
+    <div class="filter-block">
+      <button class="filter-toggle" data-bs-toggle="collapse" data-bs-target="#fIndicator" aria-expanded="true">
+        Indicator Selector <i class="bi bi-chevron-down"></i>
+      </button>
+      <div id="fIndicator" class="collapse show"><div class="filter-body">
+        <div class="indicator-seg" role="group" aria-label="Emission indicator">
+          <input type="radio" class="btn-check" name="indicator" id="indGHG" value="Total GHG" checked>
+          <label class="btn btn-outline-success" for="indGHG">Total GHG</label>
+          <input type="radio" class="btn-check" name="indicator" id="indCO2" value="CO₂">
+          <label class="btn btn-outline-success" for="indCO2">CO₂</label>
+          <input type="radio" class="btn-check" name="indicator" id="indCH4" value="CH₄">
+          <label class="btn btn-outline-success" for="indCH4">CH₄</label>
+          <input type="radio" class="btn-check" name="indicator" id="indN2O" value="N₂O">
+          <label class="btn btn-outline-success" for="indN2O">N₂O</label>
+          <input type="radio" class="btn-check" name="indicator" id="indFgas" value="F-gases">
+          <label class="btn btn-outline-success" for="indFgas">F-gases</label>
+          <input type="radio" class="btn-check" name="indicator" id="indHFC" value="HFCs">
+          <label class="btn btn-outline-success" for="indHFC">HFCs</label>
+          <input type="radio" class="btn-check" name="indicator" id="indPFC" value="PFCs">
+          <label class="btn btn-outline-success" for="indPFC">PFCs</label>
+          <input type="radio" class="btn-check" name="indicator" id="indSF6" value="SF₆">
+          <label class="btn btn-outline-success" for="indSF6">SF₆</label>
+          <input type="radio" class="btn-check" name="indicator" id="indNF3" value="NF₃">
+          <label class="btn btn-outline-success" for="indNF3">NF₃</label>
+        </div>
+        <div class="text-muted mt-2" style="font-size:.68rem">EPA national inventory, 1990–2024 (CO₂-equivalent).</div>
+      </div></div>
+    </div>
+
+    <!-- Pollutants -->
+    <div class="filter-block">
+      <button class="filter-toggle" data-bs-toggle="collapse" data-bs-target="#fPollutants" aria-expanded="true">
+        Atmospheric Pollutants <i class="bi bi-chevron-down"></i>
+      </button>
+      <div id="fPollutants" class="collapse show"><div class="filter-body row gx-2" style="font-size:.84rem">
+        <div class="col-6"><div class="form-check"><input class="form-check-input poll-cb" type="checkbox" id="pO3" value="O₃" checked><label class="form-check-label" for="pO3">O₃</label></div></div>
+        <div class="col-6"><div class="form-check"><input class="form-check-input poll-cb" type="checkbox" id="pPM25" value="PM2.5" checked><label class="form-check-label" for="pPM25">PM2.5</label></div></div>
+        <div class="col-6"><div class="form-check"><input class="form-check-input poll-cb" type="checkbox" id="pPM10" value="PM10"><label class="form-check-label" for="pPM10">PM10</label></div></div>
+        <div class="col-6"><div class="form-check"><input class="form-check-input poll-cb" type="checkbox" id="pNOx" value="NOx" checked><label class="form-check-label" for="pNOx">NOx</label></div></div>
+        <div class="col-6"><div class="form-check"><input class="form-check-input poll-cb" type="checkbox" id="pSO2" value="SO₂"><label class="form-check-label" for="pSO2">SO₂</label></div></div>
+        <div class="col-6"><div class="form-check"><input class="form-check-input poll-cb" type="checkbox" id="pNH3" value="NH₃"><label class="form-check-label" for="pNH3">NH₃</label></div></div>
+        <div class="col-6"><div class="form-check"><input class="form-check-input poll-cb" type="checkbox" id="pVOC" value="VOCs"><label class="form-check-label" for="pVOC">VOCs</label></div></div>
+        <div class="col-6"><div class="form-check"><input class="form-check-input poll-cb" type="checkbox" id="pCO" value="CO"><label class="form-check-label" for="pCO">CO</label></div></div>
+      </div></div>
+    </div>
+
+    <!-- Year range -->
+    <div class="filter-block">
+      <button class="filter-toggle" data-bs-toggle="collapse" data-bs-target="#fYears" aria-expanded="true">
+        Year Range <i class="bi bi-chevron-down"></i>
+      </button>
+      <div id="fYears" class="collapse show"><div class="filter-body">
+        <div class="year-readout"><span id="yearFromLbl">1990</span><span id="yearToLbl">2050</span></div>
+        <label class="visually-hidden" for="yearFrom">Start year</label>
+        <input type="range" id="yearFrom" min="1990" max="2050" value="1990" step="1">
+        <label class="visually-hidden" for="yearTo">End year</label>
+        <input type="range" id="yearTo" min="1990" max="2050" value="2050" step="1">
+        <div class="text-muted" style="font-size:.7rem">Drag to set the analysis window (1990–2050).</div>
+      </div></div>
+    </div>
+
+    <!-- Policy interventions -->
+    <div class="filter-block">
+      <button class="filter-toggle" data-bs-toggle="collapse" data-bs-target="#fPolicyCat" aria-expanded="true">
+        Policy Interventions <i class="bi bi-chevron-down"></i>
+      </button>
+      <div id="fPolicyCat" class="collapse show"><div class="filter-body">
+        <div class="text-muted mb-2" style="font-size:.7rem">Show policy lines on the chart, grouped by jurisdiction.</div>
+        <label class="pol-check"><input type="checkbox" class="policy-cat-cb" value="intl" checked>
+          <span class="sw" style="background:#16324F"></span>International
+          <span class="cnt" data-phase="intl"></span></label>
+        <label class="pol-check"><input type="checkbox" class="policy-cat-cb" value="eu" checked>
+          <span class="sw" style="background:#0E8C8A"></span>EU
+          <span class="cnt" data-phase="eu"></span></label>
+        <label class="pol-check"><input type="checkbox" class="policy-cat-cb" value="natl" checked>
+          <span class="sw" style="background:#00843D"></span>National
+          <span class="cnt" data-phase="natl"></span></label>
+        <div class="text-muted mt-2" style="font-size:.66rem">
+          <span class="sw" style="background:#E8A33D"></span>2030 / 2050 statutory targets are always shown.
+        </div>
+      </div></div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <main class="main-area">
+
+    <div class="row g-3">
+      <!-- EMISSIONS ANALYSIS -->
+      <div class="col-12 col-xxl-7">
+        <section class="panel h-100" aria-label="Emissions analysis">
+          <div class="panel-head">
+            <span class="panel-num">2A</span>
+            <h2 class="panel-title">Time-Series Emissions Analysis</h2>
+            <div class="ms-auto chart-toolbar d-flex gap-1">
+              <button class="btn btn-sm" id="zoomIn" title="Zoom in"><i class="bi bi-zoom-in"></i></button>
+              <button class="btn btn-sm" id="zoomOut" title="Zoom out"><i class="bi bi-zoom-out"></i></button>
+              <button class="btn btn-sm" id="zoomReset" title="Reset zoom"><i class="bi bi-house"></i></button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="d-flex justify-content-between align-items-baseline flex-wrap gap-2 mb-2">
+              <div class="fw-bold" id="chartTitle" style="color:var(--navy)">Total GHG Emissions (MtCO₂e) — National Total</div>
+              <div class="cat-key">
+                <span class="k" style="color:#16324F"><span class="d"></span>International</span>
+                <span class="k" style="color:#0E8C8A"><span class="d"></span>EU</span>
+                <span class="k" style="color:#00843D"><span class="d"></span>National</span>
+                <span class="k" style="color:#E8A33D"><span class="d"></span>Target</span>
+              </div>
+            </div>
+            <div class="text-muted mb-2" style="font-size:.7rem">Vertical labels mark policy interventions (toggle by jurisdiction at left) · shaded band = 95% confidence interval</div>
+            <div class="chart-wrap"><canvas id="emissionsChart" role="img" aria-label="Emissions time series chart"></canvas></div>
+            <div class="chart-kpis">
+              <div class="mini-kpi"><div class="lbl">Emission Reduction (2019–2024)</div><div class="val down" id="kpiReduction">−8.9%</div><div class="sub">vs pre-policy trajectory</div></div>
+              <div class="mini-kpi"><div class="lbl">Avoided Emissions</div><div class="val down" id="kpiAvoided">6.3 MtCO₂e</div><div class="sub">vs no-policy baseline, 2020–2024</div></div>
+              <div class="mini-kpi"><div class="lbl">Trend Change (post-policy)</div><div class="val" id="kpiTrend">−1.4</div><div class="sub">MtCO₂e per year</div></div>
+              <div class="mini-kpi"><div class="lbl">Statistical Confidence</div><div class="val" id="kpiConf">87%</div><div class="sub">interrupted time-series model</div></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- MAP -->
+      <div class="col-12 col-xxl-5">
+        <section class="panel h-100" aria-label="Spatial environmental mapping">
+          <div class="panel-head">
+            <span class="panel-num">2B</span>
+            <h2 class="panel-title">Spatial Environmental Mapping</h2>
+            <span class="ms-auto text-muted" style="font-size:.72rem">EPA monitoring network · OpenStreetMap</span>
+          </div>
+          <div class="raster-bar" aria-label="Raster overlay selector">
+            <div class="raster-field">
+              <label for="rasterYear">Year</label>
+              <select class="form-select form-select-sm" id="rasterYear" aria-label="Select year"></select>
+            </div>
+            <div class="raster-field">
+              <label for="rasterSector">Sector</label>
+              <select class="form-select form-select-sm" id="rasterSector" aria-label="Select sector" disabled></select>
+            </div>
+            <div class="raster-field">
+              <label for="rasterParam">Parameter</label>
+              <select class="form-select form-select-sm" id="rasterParam" aria-label="Select parameter" disabled></select>
+            </div>
+            <button type="button" class="raster-clear" id="rasterClear" title="Clear raster overlay" disabled>
+              <i class="bi bi-x-lg"></i> Clear
+            </button>
+            <span class="raster-status" id="rasterStatus" role="status"></span>
+          </div>
+          <div id="map"></div>
+        </section>
+      </div>
+    </div>
+
+    <div class="row g-3 mt-0">
+      <!-- POLICY INTELLIGENCE -->
+      <div class="col-12 col-xl-5">
+        <section class="panel h-100" aria-label="Policy intelligence">
+          <div class="panel-head">
+            <span class="panel-num">3</span>
+            <h2 class="panel-title">Policy Intelligence Panel</h2>
+          </div>
+          <div class="panel-body">
+            <div class="policy-select-label mb-1">Selected policy</div>
+            <h3 class="fw-bolder mb-3" id="piName" style="color:var(--navy);font-size:1.25rem">
+              <i class="bi bi-clipboard2-check me-1" style="color:var(--emerald)"></i>Climate Action Plan 2019
+            </h3>
+            <div class="policy-meta mb-3">
+              <div class="row-line"><span class="k">Implementation Year</span><span class="v" id="piYear">2019</span></div>
+              <div class="row-line"><span class="k">Jurisdiction / Type</span><span class="v" id="piCategory">National · Strategic / planning</span></div>
+              <div class="row-line"><span class="k">Lead Body</span><span class="v" id="piAgency">Government of Ireland</span></div>
+              <div class="row-line"><span class="k">Affected Sector(s)</span><span class="v" id="piSectors">Cross-cutting (all sectors)</span></div>
+            </div>
+            <div class="kpi-grid mb-3">
+              <div class="kpi-card"><div class="lbl">Intended Direction</div><div class="val" id="piDirection">Reduce</div><div class="sub">net effect on emissions</div></div>
+              <div class="kpi-card"><div class="lbl">Jurisdiction</div><div class="val" id="piJuris" style="font-size:1.15rem">National</div><div class="sub">policy level</div></div>
+              <div class="kpi-card"><div class="lbl">Instrument</div><div class="val" id="piInstrument" style="font-size:.92rem;line-height:1.2">Planning / sectoral actions</div><div class="sub">mechanism</div></div>
+              <div class="kpi-card"><div class="lbl">Status / Outcome</div><div class="val" id="piOutcome" style="font-size:.82rem;line-height:1.22">Partially implemented; superseded by statutory CAPs</div><div class="sub">to date</div></div>
+            </div>
+            <div class="narrative" id="piNarrative">
+              <strong><i class="bi bi-stars me-1"></i>Policy summary.</strong>
+              <span id="piNarrativeText">
+                First detailed Climate Action Plan; over 180 actions; non-statutory.
+              </span>
+              <ul id="piNarrativeList">
+                <li><strong>Where it sits:</strong> <span id="piWhere">National strategic plan affecting cross-cutting sectors.</span></li>
+                <li><strong>Status to date:</strong> <span id="piStatus">Partially implemented; superseded by statutory CAPs.</span></li>
+                <li><strong>Note:</strong> attribution of emission change to any single policy is indicative; the chart's modelled baseline and band express that uncertainty.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- TIMELINE + PARTICIPATION column -->
+      <div class="col-12 col-xl-7">
+        <section class="panel" aria-label="Climate policy roadmap">
+          <div class="panel-head">
+            <span class="panel-num">4</span>
+            <h2 class="panel-title">Climate Policy Roadmap · 1992 → 2050</h2>
+            <span class="ms-auto text-muted" style="font-size:.72rem">Click a node to inspect its impact</span>
+          </div>
+          <div class="panel-body pb-2">
+            <div class="tl-phases mb-1">
+              <span><span class="dot" style="background:var(--navy)"></span>International framework</span>
+              <span><span class="dot" style="background:var(--teal)"></span>EU legislation</span>
+              <span><span class="dot" style="background:var(--emerald)"></span>National plan / act</span>
+              <span><span class="dot" style="background:var(--amber)"></span>Target / vision</span>
+            </div>
+            <div class="timeline-scroll">
+              <div class="timeline-track" id="timelineTrack" role="list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PARTICIPATION (moved to the Feedback tab) -->
+        <section class="panel" aria-label="Public participation">
+          <div class="panel-head">
+            <span class="panel-num">5</span>
+            <h2 class="panel-title">Public Participation</h2>
+            <span class="ms-auto text-muted" style="font-size:.72rem">Anonymous · optional</span>
+          </div>
+          <div class="panel-body">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+              <div class="flex-grow-1" style="min-width:220px">
+                <div class="fw-bold mb-1" style="color:var(--navy)">Tell us what you think</div>
+                <div class="text-muted" style="font-size:.86rem;line-height:1.5">
+                  Share your view on how effective Ireland&rsquo;s climate policies have been. Responses are anonymous and saved to the project&rsquo;s feedback workbook for research.
+                </div>
+              </div>
+              <button class="btn btn-submit text-white px-4" id="goFeedbackBtn">
+                <i class="bi bi-chat-square-text me-1"></i>Open Feedback
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- TARGETS DASHBOARD -->
+    <section class="panel" aria-label="National climate targets">
+      <div class="panel-head">
+        <span class="panel-num">6</span>
+        <h2 class="panel-title">National Climate Targets Dashboard</h2>
+      </div>
+      <div class="panel-body">
+        <div class="targets-grid">
+          <div class="target-card"><i class="bi bi-graph-down-arrow icon"></i><div class="big">51%</div><div class="desc">Emission Reduction Target by 2030 (vs 2018)</div></div>
+          <div class="target-card"><i class="bi bi-globe-europe-africa icon"></i><div class="big navy">2050</div><div class="desc">Climate Neutrality — Climate Neutral Ireland</div></div>
+          <div class="target-card"><i class="bi bi-wind icon"></i><div class="big">80%</div><div class="desc">Renewable Electricity by 2030</div></div>
+          <div class="target-card"><i class="bi bi-sun icon"></i><div class="big">43%</div><div class="desc">Renewable Energy Share by 2030</div></div>
+          <div class="target-card"><i class="bi bi-flower1 icon"></i><div class="big">25%</div><div class="desc">Agriculture Emission Reduction Target</div></div>
+          <div class="target-card"><i class="bi bi-recycle icon"></i><div class="big navy">Net-Zero</div><div class="desc">Economy-wide transition pathway</div></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+</div><!-- /tab-explorer -->
+
+<!-- ================= TAB: ABOUT INPACT ================= -->
+<div class="tab-pane" id="tab-about" role="tabpanel">
+  <div class="about-wrap">
+
+    <!-- Project banner -->
+    <div class="about-banner">
+      <img src="/static/img/inpact-banner.jpg"
+           alt="INPACT — Climate · Data · Policy · Impact. Monitoring Ireland's Greenhouse Gas Emissions, Informing Effective Climate Action.">
+    </div>
+
+    <!-- Hero -->
+    <div class="about-hero">
+      <div class="eyebrow">About the Project</div>
+      <h2>Investigating National Policy Impacts on Atmospheric Climate Targets (INPACT)</h2>
+      <p>INPACT is a multidisciplinary research project that examines how national climate and environmental policies have influenced greenhouse gas emissions, atmospheric composition, and climate outcomes in Ireland since the country&rsquo;s initial engagement with the United Nations Framework Convention on Climate Change (UNFCCC) in 1992.</p>
+    </div>
+
+    <!-- Intro continued -->
+    <div class="about-section">
+      <p>As Ireland works towards legally binding climate targets&mdash;including a 51% reduction in greenhouse gas emissions by 2030 and net-zero emissions by 2050&mdash;there is an urgent need to understand which policies have been effective, where gaps remain, and how future policy can deliver meaningful climate action. INPACT provides the scientific evidence needed to support these decisions.</p>
+    </div>
+
+    <!-- Mission -->
+    <div class="about-section">
+      <h3><span class="sec-icon"><i class="bi bi-bullseye"></i></span>Our Mission</h3>
+      <p>The mission of INPACT is to assess the real-world impact of national policy interventions on greenhouse gas emissions and atmospheric climate indicators, while identifying practical and evidence-based pathways that can help Ireland achieve its climate commitments.</p>
+      <p>By combining atmospheric science, economics, policy analysis, and data science, the project aims to answer a critical question:</p>
+      <div class="about-question">Which policies have successfully reduced emissions and improved climate outcomes, and what lessons can be applied to future climate action?</div>
+    </div>
+
+    <!-- What We Do -->
+    <div class="about-section">
+      <h3><span class="sec-icon"><i class="bi bi-gear-wide-connected"></i></span>What We Do</h3>
+      <p>INPACT integrates multiple sources of environmental and policy data to create the first comprehensive assessment of how Irish climate policies have influenced atmospheric greenhouse gases and radiative forcing over time.</p>
+      <p>The project will:</p>
+      <ul class="about-list">
+        <li>Develop a timeline of national climate and environmental policies since the 1990s.</li>
+        <li>Compare bottom-up national emission inventories with top-down atmospheric observations and inverse modelling estimates.</li>
+        <li>Analyse long-term trends in greenhouse gases, atmospheric composition, essential climate variables, and radiative fluxes.</li>
+        <li>Apply advanced statistical and causal inference methods to evaluate policy effectiveness.</li>
+        <li>Investigate potential unintended environmental, economic, and social consequences of policy interventions.</li>
+        <li>Build an open digital platform and dashboard to visualise climate and policy data for policymakers, researchers, and the public.</li>
+        <li>Facilitate public dialogue and stakeholder engagement to support inclusive climate action.</li>
+      </ul>
+    </div>
+
+    <!-- Why INPACT Matters -->
+    <div class="about-section">
+      <h3><span class="sec-icon"><i class="bi bi-question-diamond"></i></span>Why INPACT Matters</h3>
+      <p>Climate policies are often evaluated using reported emissions data, yet the ultimate measure of success is their impact on the atmosphere itself. Despite significant investment in emissions reduction strategies, greenhouse gas concentrations continue to rise globally, and Ireland remains at risk of missing key climate targets.</p>
+      <p>INPACT bridges this gap by linking policy interventions directly to atmospheric observations and climate indicators. The project will generate robust evidence on the effectiveness of historical policies, identify barriers to successful implementation, and support the development of more effective and equitable climate solutions.</p>
+      <p>The project&rsquo;s findings will help policymakers understand not only whether policies worked, but also:</p>
+      <div class="why-grid">
+        <div class="why-card"><div class="q">Why did they work?</div><div class="a">Understanding the mechanisms behind effective interventions.</div></div>
+        <div class="why-card"><div class="q">For whom did they work?</div><div class="a">Identifying which sectors and communities benefited.</div></div>
+        <div class="why-card"><div class="q">Any unintended consequences?</div><div class="a">Assessing effects across society and the economy.</div></div>
+      </div>
+    </div>
+
+    <!-- Data, Science and Innovation -->
+    <div class="about-section">
+      <h3><span class="sec-icon"><i class="bi bi-database-gear"></i></span>Data, Science and Innovation</h3>
+      <p>INPACT draws on some of the world&rsquo;s leading climate and atmospheric observation systems, including:</p>
+      <div class="data-chips">
+        <span class="data-chip"><i class="bi bi-broadcast"></i>Integrated Carbon Observation System (ICOS)</span>
+        <span class="data-chip"><i class="bi bi-globe-americas"></i>Copernicus Earth Observation Programme</span>
+        <span class="data-chip"><i class="bi bi-cloud-haze2"></i>Copernicus Atmosphere Monitoring Service (CAMS)</span>
+        <span class="data-chip"><i class="bi bi-cloud-drizzle"></i>European Centre for Medium-Range Weather Forecasts (ECMWF)</span>
+        <span class="data-chip"><i class="bi bi-file-earmark-bar-graph"></i>National GHG inventories (UNFCCC frameworks)</span>
+      </div>
+      <p style="margin-top:1.1rem">Using advanced analytical methods, machine learning, geospatial analysis, and integrated data infrastructures, the project will create an open, interoperable framework for climate-policy evaluation.</p>
+      <p>A key legacy output will be a public-facing dashboard that visualises policy timelines alongside greenhouse gas measurements, emissions inventories, and climate indicators, making complex climate information accessible to decision-makers and communities.</p>
+    </div>
+
+    <!-- Our Team -->
+    <div class="about-section">
+      <h3><span class="sec-icon"><i class="bi bi-people"></i></span>Our Team</h3>
+      <p>INPACT brings together experts in atmospheric science, climate policy, economics, environmental health, artificial intelligence, data science, and public engagement from the University of Galway and Insight &ndash; Research Ireland Centre for Data Analytics.</p>
+      <div class="team-grid">
+
+        <div class="team-card pi">
+          <div class="who">
+            <div class="team-avatar"><img src="/static/img/team/liz-coleman.jpg" alt="Dr. Liz Coleman" onerror="this.parentNode.textContent='LC'"></div>
+            <div>
+              <div class="name">Dr. Liz Coleman<span class="pi-badge">PI</span></div>
+              <div class="role">Principal Investigator<span class="org">University of Galway</span></div>
+            </div>
+          </div>
+          <p class="bio">Dr. Coleman specialises in climate modelling, air quality forecasting, and the interactions between climate and atmospheric pollution. She has led several national research initiatives and is widely recognised for her work connecting scientific research, policy development, and public engagement.</p>
+        </div>
+
+        <div class="team-card pi">
+          <div class="who">
+            <div class="team-avatar"><img src="/static/img/team/karyn-morrissey.jpg" alt="Professor Karyn Morrissey" onerror="this.parentNode.textContent='KM'"></div>
+            <div>
+              <div class="name">Professor Karyn Morrissey<span class="pi-badge">Co-PI</span></div>
+              <div class="role">Co-Principal Investigator<span class="org">University of Galway</span></div>
+            </div>
+          </div>
+          <p class="bio">Professor Morrissey is an environmental economist whose research focuses on climate change, public health, adaptation, and resilience. Her work supports evidence-based policymaking through advanced econometric analysis and interdisciplinary research on environmental and societal impacts.</p>
+        </div>
+
+        <div class="team-card">
+          <div class="who">
+            <div class="team-avatar"><img src="/static/img/team/mehdi-gholamnia.jpg" alt="Dr. Mehdi Gholamnia" onerror="this.parentNode.textContent='MG'"></div>
+            <div>
+              <div class="name">Dr. Mehdi Gholamnia</div>
+              <div class="role">Postdoctoral Researcher<span class="org">University of Galway</span></div>
+            </div>
+          </div>
+          <p class="bio">Dr. Gholamnia specialises in geospatial analytics, remote sensing, spatial modelling, and environmental data integration. His research focuses on combining atmospheric observations, Earth Observation data, and emissions inventories to assess climate policy effectiveness and support pathways towards net-zero emissions.</p>
+        </div>
+
+        <div class="team-card">
+          <div class="who">
+            <div class="team-avatar"><img src="/static/img/team/andy-donald.jpg" alt="Andy Donald" onerror="this.parentNode.textContent='AD'"></div>
+            <div>
+              <div class="name">Andy Donald</div>
+              <div class="role">Data Science &amp; Applied Innovation<span class="org">Insight Research Ireland Centre for Data Analytics</span></div>
+            </div>
+          </div>
+          <p class="bio">Andy Donald leads the Applied Innovation Unit at Insight and brings expertise in artificial intelligence, machine learning automation, explainable AI, linked data, and large-scale data ecosystems. His work supports the development of INPACT&rsquo;s integrated data infrastructure and digital tools.</p>
+        </div>
+
+        <div class="team-card">
+          <div class="who">
+            <div class="team-avatar"><img src="/static/img/team/darius-ceburnis.jpg" alt="Dr. Darius Ceburnis" onerror="this.parentNode.textContent='DC'"></div>
+            <div>
+              <div class="name">Dr. Darius Ceburnis</div>
+              <div class="role">Atmospheric Science<span class="org">University of Galway</span></div>
+            </div>
+          </div>
+          <p class="bio">Dr. Ceburnis is an atmospheric scientist and internationally recognised expert in atmospheric composition measurements and long-term climate observations. Through his leadership of the Centre for Climate and Air Pollution Studies (C-CAPS), he has contributed significantly to Ireland&rsquo;s greenhouse gas monitoring infrastructure and atmospheric research programmes.</p>
+        </div>
+
+        <div class="team-card">
+          <div class="who">
+            <div class="team-avatar"><img src="/static/img/team/damien-martin.jpg" alt="Dr. Damien Martin" onerror="this.parentNode.textContent='DM'"></div>
+            <div>
+              <div class="name">Dr. Damien Martin</div>
+              <div class="role">Atmospheric Measurements &amp; Emissions Analysis<span class="org">University of Galway</span></div>
+            </div>
+          </div>
+          <p class="bio">Dr. Martin manages the ICOS-Ireland network and has extensive experience in greenhouse gas monitoring, atmospheric observations, inverse modelling, and emissions verification. He supports the integration and interpretation of atmospheric datasets within the project.</p>
+        </div>
+
+        <div class="team-card">
+          <div class="who">
+            <div class="team-avatar"><img src="/static/img/team/david-nganga.jpg" alt="David Nganga" onerror="this.parentNode.textContent='DN'"></div>
+            <div>
+              <div class="name">David Nganga</div>
+              <div class="role">PhD Researcher<span class="org">University of Galway</span></div>
+            </div>
+          </div>
+          <p class="bio">David Nganga researches the links between air quality, climate change, aerosols, and human health. He contributes expertise in atmospheric chemistry and public engagement, helping communicate climate and environmental research to diverse audiences.</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Closing -->
+    <div class="about-closing">
+      <h3><i class="bi bi-globe-europe-africa"></i>Working Together for Climate Action</h3>
+      <p>INPACT is founded on the principle that effective climate action requires collaboration across disciplines, sectors, and communities. By combining scientific evidence, economic analysis, advanced data systems, and meaningful public engagement, the project aims to provide the knowledge and tools needed to support Ireland&rsquo;s transition to a sustainable, climate-resilient future.</p>
+    </div>
+
+  </div>
+</div><!-- /tab-about -->
+
+<!-- ================= TAB: FEEDBACK ================= -->
+<div class="tab-pane" id="tab-feedback" role="tabpanel">
+  <div class="fb-wrap">
+
+    <div class="fb-intro">
+      <div class="eyebrow">Public Participation</div>
+      <h2>Share Your Feedback</h2>
+      <p>Your perspective helps contextualise the statistical evidence on policy effectiveness. Tell us how you view Ireland&rsquo;s climate policies. Responses are anonymous and recorded for research purposes. All submissions are saved to the project&rsquo;s feedback workbook.</p>
+    </div>
+
+    <div class="fb-card">
+      <!-- Q1: Reduced emissions -->
+      <div class="fb-field">
+        <span class="fb-label">Do you think national climate policies have reduced emissions?<span class="req">*</span></span>
+        <div class="fb-choices" role="radiogroup" aria-label="Have policies reduced emissions">
+          <span class="fb-choice"><input type="radio" name="fbReduced" id="fbR_yes" value="Yes" checked><label for="fbR_yes"><i class="bi bi-hand-thumbs-up"></i>Yes</label></span>
+          <span class="fb-choice"><input type="radio" name="fbReduced" id="fbR_no" value="No"><label for="fbR_no"><i class="bi bi-hand-thumbs-down"></i>No</label></span>
+          <span class="fb-choice"><input type="radio" name="fbReduced" id="fbR_unsure" value="Unsure"><label for="fbR_unsure"><i class="bi bi-question-circle"></i>Unsure</label></span>
+        </div>
+      </div>
+
+      <!-- Q2: Effectiveness rating -->
+      <div class="fb-field">
+        <label class="fb-label" for="fbEffectiveness">How effective do you consider these policies overall? <span class="fb-hint" style="display:inline">(1 = not effective, 10 = highly effective)</span></label>
+        <div class="fb-rating-row">
+          <input type="range" id="fbEffectiveness" min="1" max="10" value="7" step="1">
+          <span class="fb-rating-big" id="fbEffectivenessVal">7</span>
+        </div>
+        <div class="fb-scale"><span>1 &middot; Not effective</span><span>10 &middot; Highly effective</span></div>
+      </div>
+
+      <!-- Q3: Sector -->
+      <div class="fb-field">
+        <label class="fb-label" for="fbSectorSel">Which sector do you think is most affected by climate policy?</label>
+        <select class="form-select" id="fbSectorSel">
+          <option>Transport</option>
+          <option>Energy</option>
+          <option>Agriculture</option>
+          <option>Residential</option>
+          <option>Industry</option>
+          <option>Waste</option>
+          <option>Land Use &amp; Forestry</option>
+          <option>Cross-cutting (all sectors)</option>
+        </select>
+      </div>
+
+      <!-- Q4: Role -->
+      <div class="fb-field">
+        <label class="fb-label" for="fbRoleSel">Which best describes you?</label>
+        <select class="form-select" id="fbRoleSel">
+          <option>Member of the public</option>
+          <option>Researcher / Academic</option>
+          <option>Policymaker / Public servant</option>
+          <option>Industry / Business</option>
+          <option>NGO / Civil society</option>
+          <option>Student</option>
+          <option>Prefer not to say</option>
+        </select>
+      </div>
+
+      <!-- Q5: Comments -->
+      <div class="fb-field">
+        <label class="fb-label" for="fbCommentBox">Additional comments <span class="fb-hint" style="display:inline">(optional)</span></label>
+        <textarea class="form-control" id="fbCommentBox" rows="4" maxlength="1000" placeholder="Share your observations, suggestions, or perspectives on Ireland's climate policy&hellip;"></textarea>
+        <div class="fb-hint" id="fbCharCount">0 / 1000 characters</div>
+      </div>
+
+      <div class="fb-submit-row">
+        <button class="btn btn-submit text-white px-4" id="fbSubmitBtn"><i class="bi bi-send me-1"></i>Submit Feedback</button>
+        <span class="fb-status" id="fbStatusMsg"></span>
+      </div>
+    </div>
+
+    <!-- Live aggregate stats -->
+    <div class="fb-card">
+      <div class="fb-label" style="margin-bottom:.8rem"><i class="bi bi-bar-chart-line me-1"></i>Aggregated Sentiment (this session)</div>
+      <div class="fb-stats-row">
+        <div class="p-stat"><div class="val" id="fbStatResponses">0</div><div class="lbl">Responses</div></div>
+        <div class="p-stat"><div class="val" id="fbStatAvg">&ndash;</div><div class="lbl">Avg rating</div></div>
+        <div class="p-stat"><div class="val" id="fbStatPos">&ndash;</div><div class="lbl">Positive sentiment</div></div>
+      </div>
+      <div class="text-muted mt-3" style="font-size:.78rem;line-height:1.5">
+        Aggregated public sentiment is used alongside statistical models to contextualise perceived policy effectiveness. The counters above reflect submissions made in this browser session; the durable record lives in the project&rsquo;s feedback workbook.
+      </div>
+    </div>
+
+    <!-- Admin download -->
+    <div class="fb-admin">
+      <div class="ico"><i class="bi bi-file-earmark-spreadsheet"></i></div>
+      <div class="txt">
+        <b>Download all feedback (Excel)</b>
+        <p>Retrieve the complete feedback workbook (<span class="mono">.xlsx</span>). The canonical copy is also committed to the project GitHub repository at <span class="mono">data/feedback.xlsx</span>.</p>
+      </div>
+      <a class="btn btn-submit text-white px-3" href="/api/feedback/download/"><i class="bi bi-download me-1"></i>Download .xlsx</a>
+    </div>
+
+  </div>
+</div><!-- /tab-feedback -->
+
+<!-- ================= FOOTER ================= -->
+<footer class="app-footer">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div class="footer-links">
+      <a href="#" onclick="return false">Data Sources</a>
+      <a href="#" onclick="return false">Methodology</a>
+      <a href="#" onclick="return false">EPA Ireland</a>
+      <a href="#" onclick="return false">INPACT Project</a>
+      <a href="#" onclick="return false">European Environment Agency</a>
+      <a href="#" onclick="return false">Contact</a>
+    </div>
+    <div class="text-end" style="opacity:.85">
+      Version 2.0 · 2026 · © Environmental Protection Agency Ireland (prototype — synthetic data)
+    </div>
+  </div>
+</footer>
+
+<!-- ================= SCRIPTS ================= -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+/* =====================================================================
+   Ireland Greenhouse Gas Policy Impact Explorer
+   Observed emissions are loaded from data/ghg_inventory.csv (injected by the
+   Django view). Baseline counterfactual, policy-adjusted pathway, forecast and
+   confidence band are derived from those observed values by the model below.
+   ===================================================================== */
+"use strict";
+
+/* ---------------------- 1. Synthetic data engine ---------------------- */
+function seededRandom(seed){
+  let s = seed % 2147483647; if (s <= 0) s += 2147483646;
+  return () => (s = s * 16807 % 2147483647) / 2147483647;
+}
+
+/* ---------------------------------------------------------------------
+   Inventory data — injected from data/ghg_inventory.csv by the Django view.
+   Edit that CSV (values, gases, or year rows) and reload the page; the chart,
+   indicator switcher, baseline, forecast and KPIs all recompute from it.
+   The placeholders below default to empty so the file stays valid JS if it is
+   ever opened without the server.
+   --------------------------------------------------------------------- */
+const REAL_DATA  = /*@INVENTORY@*/{};      // { "<gas>": [v_year0, v_year1, ...], ... }  (kt CO2e, null = missing)
+const DATA_YEARS = /*@YEARS@*/[];          // [1990, 1991, ...] aligned to every REAL_DATA array
+
+const PROJECTION_END = 2050;               // chart horizon / projection target year
+const OBS_START = DATA_YEARS.length ? DATA_YEARS[0] : 1990;                    // first observed year (from CSV)
+const OBS_END   = DATA_YEARS.length ? DATA_YEARS[DATA_YEARS.length - 1] : OBS_START; // last observed year (from CSV)
+const FORECAST_START = OBS_END;            // forecast begins at last observation
+
+const YEARS = []; for (let y = OBS_START; y <= PROJECTION_END; y++) YEARS.push(y);
+
+const INDICATORS = {
+  "Total GHG": { key:"All greenhouse gases",                 unit:"MtCO₂e" },
+  "CO₂":       { key:"CO2",                                  unit:"MtCO₂"  },
+  "CH₄":       { key:"CH4 - (CO2 equivalent)",               unit:"MtCO₂e" },
+  "N₂O":       { key:"N2O - (CO2 equivalent)",               unit:"MtCO₂e" },
+  "F-gases":   { key:"Fluorinated gases - (CO2 equivalent)", unit:"MtCO₂e" },
+  "HFCs":      { key:"HFCs - (CO2 equivalent)",              unit:"MtCO₂e" },
+  "PFCs":      { key:"PFCs - (CO2 equivalent)",              unit:"MtCO₂e" },
+  "SF₆":       { key:"SF6 - (CO2 equivalent)",               unit:"MtCO₂e" },
+  "NF₃":       { key:"NF3 - (CO2 equivalent)",               unit:"MtCO₂e" }
+};
+// Approximate sectoral shares of the national total (modelled, for filtering only).
+const SECTOR_SHARES = {
+  "Agriculture": 0.38, "Energy": 0.17, "Transport": 0.19,
+  "Residential": 0.10, "Industry": 0.10, "Waste": 0.03, "National Total": 1.0
+};
+
+/* Ordinary least squares over an index range of (x, y) pairs */
+function ols(xs, ys){
+  const n = xs.length;
+  const mx = xs.reduce((a,b)=>a+b,0)/n, my = ys.reduce((a,b)=>a+b,0)/n;
+  let num = 0, den = 0;
+  for (let i = 0; i < n; i++){ num += (xs[i]-mx)*(ys[i]-my); den += (xs[i]-mx)**2; }
+  const slope = den ? num/den : 0;
+  return { slope, intercept: my - slope*mx };
+}
+
+/* Centred moving average (window w, odd) ignoring nulls */
+function smooth(arr, w){
+  const h = Math.floor(w/2);
+  return arr.map((v,i)=>{
+    if (v == null) return null;
+    let s = 0, c = 0;
+    for (let j = Math.max(0,i-h); j <= Math.min(arr.length-1,i+h); j++){
+      if (arr[j] != null){ s += arr[j]; c++; }
+    }
+    return c ? s/c : null;
+  });
+}
+
+function buildSeries(indicatorKey){
+  const cfg = INDICATORS[indicatorKey];
+  const raw = REAL_DATA[cfg.key] || [];                 // kt, indexed from OBS_START
+  const obsMt = raw.map(v => v == null ? null : v/1000); // → Mt
+  const at = y => obsMt[y - OBS_START];                  // observed value (Mt) for a given year, or undefined
+
+  const observed = YEARS.map(y => y <= OBS_END ? (at(y) ?? null) : null);
+
+  // ---- Baseline (no-policy counterfactual): OLS fit on the early window
+  //      (up to 2005), extrapolated with an exponentially damped slope. ----
+  const BASE_FIT_END = Math.min(2005, OBS_END);
+  const fitX = [], fitY = [];
+  for (let y = OBS_START; y <= BASE_FIT_END; y++){
+    const v = at(y);
+    if (v != null){ fitX.push(y-OBS_START); fitY.push(v); }
+  }
+  const { slope, intercept } = ols(fitX, fitY);
+  const bEnd = intercept + slope * (BASE_FIT_END - OBS_START);
+  const baseline = YEARS.map(y => {
+    let b;
+    if (y <= BASE_FIT_END) b = intercept + slope * (y-OBS_START);
+    else {
+      // damped continuation of the early-period trend
+      const t = y - BASE_FIT_END;
+      b = bEnd + slope * (1 - Math.exp(-t/14)) * 14;
+    }
+    return +Math.max(0, b).toFixed(3);
+  });
+
+  // ---- Policy-adjusted trend: smoothed observed through OBS_END, then a
+  //      pathway bending to the statutory targets (−51% vs 2018 by 2030,
+  //      near-neutral by 2050), applied proportionally per gas ----
+  const smObs = smooth(observed.slice(0, OBS_END-OBS_START+1), 5);
+  const v2018 = at(2018), vLast = smObs[smObs.length-1];
+  const target2030 = v2018 != null ? v2018 * 0.49 : vLast * 0.6;
+  const target2050 = v2018 != null ? v2018 * 0.08 : vLast * 0.1;
+  const policy = YEARS.map((y,i) => {
+    let p;
+    if (y <= OBS_END) p = smObs[i];
+    else if (y <= 2030){
+      const k = (y - OBS_END) / (2030 - OBS_END);
+      p = vLast + (target2030 - vLast) * (k*k*(3-2*k)); // smoothstep
+    } else {
+      const k = (y - 2030) / 20;
+      p = target2030 + (target2050 - target2030) * k;
+    }
+    return p == null ? null : +Math.max(0, p).toFixed(3);
+  });
+
+  // ---- Forecast projection + widening 95% CI band (from last observation) ----
+  const forecast = [], ciUp = [], ciLo = [];
+  const ref = vLast ?? 1;
+  YEARS.forEach((y,i) => {
+    if (y >= FORECAST_START && policy[i] != null){
+      const spreadPct = 0.018 * Math.sqrt(y - FORECAST_START + 1);
+      forecast.push(policy[i]);
+      ciUp.push(+(policy[i] + ref * spreadPct * 2).toFixed(3));
+      ciLo.push(+Math.max(0, policy[i] - ref * spreadPct * 2).toFixed(3));
+    } else { forecast.push(null); ciUp.push(null); ciLo.push(null); }
+  });
+
+  // ---- Headline statistics computed from the observed series ----
+  const o2019 = at(2019), oLast = at(OBS_END);
+  const reductionPct = (o2019 && oLast) ? ((oLast - o2019) / o2019) * 100 : null;
+  let avoided = 0;
+  for (let y = 2020; y <= OBS_END; y++){
+    const o = at(y), b = baseline[y-OBS_START];
+    if (o != null && b != null) avoided += (b - o);
+  }
+  const postX = [], postY = [];
+  for (let y = 2019; y <= OBS_END; y++){
+    const v = at(y);
+    if (v != null){ postX.push(y); postY.push(v); }
+  }
+  const postSlope = ols(postX, postY).slope;
+
+  return { observed, baseline, policy, forecast, ciUp, ciLo, unit: cfg.unit,
+           stats: { reductionPct, avoided, postSlope } };
+}
+
+function sectorMultiplier(){
+  const checked = [...document.querySelectorAll(".sector-cb:checked")].map(cb => cb.value);
+  if (!checked.length || checked.includes("National Total")) return { m: 1, label: "National Total" };
+  const m = checked.reduce((acc, s) => acc + (SECTOR_SHARES[s] || 0), 0);
+  return { m, label: checked.join(" + ") };
+}
+
+/* ---------------------- 2. Policy catalogue ----------------------
+   Injected from data/policies.csv by the Django view. Each record has:
+   year, name, level (International|EU|National|Target), agency, sector,
+   type, instrument, description, direction, outcome.                  */
+const POLICIES_RAW = /*@POLICIES@*/[];
+
+const LEVEL_META = {
+  international: { phase:"intl",   cat:"International", color:"#16324F" },
+  eu:           { phase:"eu",     cat:"EU",            color:"#0E8C8A" },
+  national:     { phase:"natl",   cat:"National",      color:"#00843D" },
+  target:       { phase:"target", cat:"Target",        color:"#E8A33D" }
+};
+function levelMeta(level){
+  const L = String(level || "").trim().toLowerCase();
+  if (L.startsWith("int")) return LEVEL_META.international;
+  if (L === "eu" || L.startsWith("euro")) return LEVEL_META.eu;
+  if (L.startsWith("tar")) return LEVEL_META.target;
+  return LEVEL_META.national;
+}
+/* A short label for the chart line and the timeline node */
+function conciseName(name){
+  const full = String(name || "");
+  let s = full.split(/ — | – | \/ | \(/)[0].trim();
+  const acro = full.match(/\(([A-Z][A-Za-z0-9]{1,6})\)/); // e.g. (UNFCCC), (ETS)
+  if (s.length > 30 && acro) s = acro[1];
+  return s.length > 40 ? s.slice(0, 39) + "…" : s;
+}
+const POLICIES = POLICIES_RAW.map(p => {
+  const m = levelMeta(p.level);
+  return Object.assign({}, p, {
+    y: +p.year, phase: m.phase, cat: m.cat, color: m.color,
+    short: conciseName(p.name)
+  });
+}).sort((a, b) => a.y - b.y);
+
+const dirColors = { reduce:"#1B7F4D", increase:"#C84B3C", enabling:"#244A6E", mixed:"#E8A33D" };
+function dirColor(d){ return dirColors[String(d || "").trim().toLowerCase()] || "#5C6B7A"; }
+function shorten(s, n){ s = String(s || "—"); return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+function checkedPhases(){
+  const set = new Set();
+  document.querySelectorAll(".policy-cat-cb:checked").forEach(cb => set.add(cb.value));
+  return set;
+}
+
+/* ---------------------- 3. Emissions chart ---------------------- */
+/* Draws one dashed guide per policy year, colour-coded by jurisdiction, with a
+   rotated (vertical) label. Jurisdictions are toggled via the sidebar
+   checkboxes; the 2030/2050 statutory targets are always shown in amber. */
+const policyMarkerPlugin = {
+  id: "policyMarkers",
+  afterDatasetsDraw(chart){
+    const { ctx, chartArea, scales:{ x } } = chart;
+    const phases = checkedPhases();
+
+    // vertical label drawn downwards from the top of the plot
+    const vLabel = (px, text, color) => {
+      text = text.length > 26 ? text.slice(0, 25) + "…" : text;
+      ctx.save();
+      ctx.translate(px + 3, chartArea.top + 7);
+      ctx.rotate(Math.PI / 2);
+      ctx.fillStyle = color;
+      ctx.font = "700 9px 'Source Sans 3', sans-serif";
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+    };
+
+    // group selected policies (excluding targets) by year
+    const groups = new Map();
+    POLICIES.forEach(p => {
+      if (p.phase === "target" || !phases.has(p.phase)) return;
+      const yr = Math.round(p.y);
+      (groups.get(yr) || groups.set(yr, []).get(yr)).push(p);
+    });
+
+    const MIN_GAP = 13; let lastLabelX = -1e9;
+    [...groups.keys()].sort((a, b) => a - b).forEach(yr => {
+      const idx = YEARS.indexOf(yr); if (idx < 0) return;
+      const px = x.getPixelForValue(idx);
+      if (px < chartArea.left - 1 || px > chartArea.right + 1) return;
+      const list = groups.get(yr);
+      const lead = list[0];
+
+      // dashed vertical guide
+      ctx.save();
+      ctx.strokeStyle = lead.color; ctx.globalAlpha = .34;
+      ctx.setLineDash([3, 4]); ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(px, chartArea.top + 4); ctx.lineTo(px, chartArea.bottom);
+      ctx.stroke();
+      ctx.restore();
+
+      // a small colour cap per distinct jurisdiction present that year
+      [...new Set(list.map(p => p.phase))].forEach((ph, i) => {
+        ctx.save();
+        ctx.fillStyle = list.find(p => p.phase === ph).color;
+        ctx.beginPath();
+        ctx.arc(px, chartArea.top + 5 + i * 6, 2.4, 0, Math.PI * 2);
+        ctx.fill(); ctx.restore();
+      });
+
+      // rotated label, skipped when too close to the previous one
+      if (px - lastLabelX >= MIN_GAP){
+        const extra = list.length > 1 ? `  +${list.length - 1}` : "";
+        vLabel(px, `${yr}  ${lead.short}${extra}`, "#1C2B3A");
+        lastLabelX = px;
+      }
+    });
+
+    // statutory targets — always visible, amber, distinct dotting
+    POLICIES.filter(p => p.phase === "target").forEach(p => {
+      const idx = YEARS.indexOf(Math.round(p.y)); if (idx < 0) return;
+      const px = x.getPixelForValue(idx);
+      if (px < chartArea.left - 1 || px > chartArea.right + 1) return;
+      ctx.save();
+      ctx.strokeStyle = "#E8A33D"; ctx.globalAlpha = .85;
+      ctx.setLineDash([2, 3]); ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(px, chartArea.top + 4); ctx.lineTo(px, chartArea.bottom);
+      ctx.stroke(); ctx.restore();
+      vLabel(px, `${Math.round(p.y)}  ${p.short}`, "#B27A1C");
+    });
+  }
+};
+
+let chart, REAL_KPIS = null, fullRange = { min: 0, max: YEARS.length - 1 };
+
+function chartDatasets(series, mult){
+  const sc = arr => arr.map(v => v == null ? null : +(v * mult).toFixed(2));
+  return [
+    { label:"Observed Emissions", data: sc(series.observed), borderColor:"#1B7F4D", backgroundColor:"#1B7F4D",
+      borderWidth:2.4, pointRadius:0, pointHoverRadius:5, tension:.25, order:1 },
+    { label:"Baseline Scenario (No Policy)", data: sc(series.baseline), borderColor:"#9AA7B2", backgroundColor:"#9AA7B2",
+      borderDash:[7,5], borderWidth:2, pointRadius:0, pointHoverRadius:4, tension:.25, order:2 },
+    { label:"Policy Adjusted Trend", data: sc(series.policy), borderColor:"#1F5FA8", backgroundColor:"#1F5FA8",
+      borderWidth:2.6, pointRadius:0, pointHoverRadius:5, tension:.3, order:1 },
+    { label:"Forecast Projection", data: sc(series.forecast), borderColor:"#0E8C8A", backgroundColor:"#0E8C8A",
+      borderDash:[4,4], borderWidth:2, pointRadius:0, pointHoverRadius:4, tension:.3, order:1 },
+    // CI band: high order -> drawn first, i.e. behind every line.
+    { label:"95% CI upper", data: sc(series.ciUp), borderColor:"transparent", pointRadius:0, fill:"+1",
+      backgroundColor:"rgba(14,140,138,.10)", tension:.3, order:9 },
+    { label:"95% CI lower", data: sc(series.ciLo), borderColor:"transparent", pointRadius:0, fill:false, tension:.3, order:9 }
+  ];
+}
+
+function buildChart(){
+  const indicator = document.querySelector("input[name=indicator]:checked").value;
+  const series = buildSeries(indicator);
+  const { m, label } = sectorMultiplier();
+  document.getElementById("chartTitle").textContent =
+    `${indicator} Emissions (${series.unit}) — ${label}`;
+  if (chart) chart.$unit = series.unit;
+
+  // Headline KPIs from the real inventory series (scaled by sector share)
+  const st = series.stats;
+  REAL_KPIS = {
+    reduction: st.reductionPct == null ? "—" : (st.reductionPct > 0 ? "+" : "−") + Math.abs(st.reductionPct).toFixed(1) + "%",
+    avoided: (st.avoided * m).toFixed(1),
+    trend: (st.postSlope > 0 ? "+" : "−") + Math.abs(st.postSlope * m).toFixed(2),
+    conf: 87
+  };
+  document.getElementById("kpiReduction").textContent = REAL_KPIS.reduction;
+  document.getElementById("kpiReduction").classList.toggle("down", st.reductionPct != null && st.reductionPct < 0);
+  document.getElementById("kpiAvoided").textContent = REAL_KPIS.avoided + " " + series.unit;
+  document.getElementById("kpiTrend").textContent = REAL_KPIS.trend;
+  document.getElementById("kpiConf").textContent = REAL_KPIS.conf + "%";
+
+  const data = { labels: YEARS, datasets: chartDatasets(series, m) };
+  if (chart){ chart.data = data; chart.update(); applyYearWindow(); return; }
+
+  chart = new Chart(document.getElementById("emissionsChart"), {
+    type: "line", data,
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 4 } },
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: {
+          position: "top", align: "start",
+          labels: {
+            usePointStyle: true, pointStyle:"line", boxHeight: 8,
+            font: { size: 11, weight: 600 },
+            filter: item => !item.text.startsWith("95% CI")
+          },
+          onClick(e, item, legend){ // keep default toggle behaviour
+            Chart.defaults.plugins.legend.onClick.call(this, e, item, legend);
+          }
+        },
+        tooltip: {
+          backgroundColor: "rgba(22,50,79,.95)", titleFont:{ weight:700 },
+          padding: 10, cornerRadius: 8, boxPadding: 4,
+          filter: item => !item.dataset.label.startsWith("95% CI"),
+          callbacks: {
+            title: items => `Year ${items[0].label}`,
+            label: item => ` ${item.dataset.label}: ${item.formattedValue} ${chart?.$unit ?? 'MtCO₂e'}`
+          }
+        }
+      },
+      scales: {
+        x: { grid:{ display:false }, ticks:{ maxTicksLimit:13, font:{ size:10 } } },
+        y: { beginAtZero:true, grace:"6%", title:{ display:true, text:"Mt (CO₂-equivalent)", font:{ size:10, weight:600 } },
+             grid:{ color:"rgba(22,50,79,.07)" }, ticks:{ font:{ size:10 } } }
+      }
+    },
+    plugins: [policyMarkerPlugin]
+  });
+  chart.$unit = series.unit;
+}
+
+function applyYearWindow(){
+  const from = +document.getElementById("yearFrom").value;
+  const to = +document.getElementById("yearTo").value;
+  chart.options.scales.x.min = YEARS.indexOf(Math.min(from, to));
+  chart.options.scales.x.max = YEARS.indexOf(Math.max(from, to));
+  chart.update();
+}
+
+function zoom(factor){
+  const x = chart.options.scales.x;
+  let min = x.min ?? fullRange.min, max = x.max ?? fullRange.max;
+  const center = (min + max) / 2, half = ((max - min) / 2) * factor;
+  min = Math.max(fullRange.min, Math.round(center - half));
+  max = Math.min(fullRange.max, Math.round(center + half));
+  if (max - min < 4) return;
+  x.min = min; x.max = max; chart.update();
+}
+document.getElementById("zoomIn").addEventListener("click", () => zoom(0.6));
+document.getElementById("zoomOut").addEventListener("click", () => zoom(1.6));
+document.getElementById("zoomReset").addEventListener("click", () => {
+  document.getElementById("yearFrom").value = 1990;
+  document.getElementById("yearTo").value = 2050;
+  syncYearLabels(); applyYearWindow();
+});
+
+/* ---------------------- 4. Leaflet map ---------------------- */
+const map = L.map("map", { zoomControl: true, scrollWheelZoom: true }).setView([53.35, -8.0], 7);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 18,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+L.control.scale({ imperial:false }).addTo(map);
+
+const STATIONS = [
+  { n:"Dublin — Rathmines",  c:"Dublin",    lat:53.3498, lng:-6.2603, trend:"−12.4% (5y)", score:88, o3:58, pm:11.2, nox:24.1 },
+  { n:"Cork — Heatherton Park", c:"Cork",   lat:51.8985, lng:-8.4756, trend:"−9.7% (5y)",  score:84, o3:55, pm:9.8,  nox:18.6 },
+  { n:"Galway — Mace Head",  c:"Galway",    lat:53.2707, lng:-9.0568, trend:"−7.1% (5y)",  score:81, o3:62, pm:6.4,  nox:7.2 },
+  { n:"Limerick — Shannon Estuary", c:"Limerick", lat:52.6680, lng:-8.6305, trend:"−8.9% (5y)", score:79, o3:54, pm:10.6, nox:16.9 },
+  { n:"Waterford — City Centre", c:"Waterford", lat:52.2593, lng:-7.1101, trend:"−6.5% (5y)", score:77, o3:53, pm:9.1, nox:14.3 },
+  { n:"Sligo — Cleveragh",   c:"Sligo",     lat:54.2697, lng:-8.4694, trend:"−5.8% (5y)",  score:75, o3:57, pm:7.7,  nox:9.8 },
+  { n:"Donegal — Letterkenny", c:"Donegal", lat:54.9540, lng:-7.7343, trend:"−4.9% (5y)",  score:72, o3:56, pm:8.3,  nox:8.7 },
+  { n:"Kilkenny — Seville Lodge", c:"Kilkenny", lat:52.6541, lng:-7.2448, trend:"−6.1% (5y)", score:76, o3:52, pm:8.9, nox:11.4 }
+];
+const HOTSPOTS = [
+  { n:"Moneypoint Generating Station", c:"Clare",   lat:52.6030, lng:-9.4170, type:"Energy",  ghg:"3.1 MtCO₂e/yr" },
+  { n:"Dublin Port Industrial Zone",   c:"Dublin",  lat:53.3460, lng:-6.2080, type:"Transport / Industry", ghg:"1.8 MtCO₂e/yr" },
+  { n:"Aughinish Alumina Refinery",    c:"Limerick",lat:52.6210, lng:-9.0640, type:"Industry", ghg:"1.2 MtCO₂e/yr" },
+  { n:"Great Island CCGT",             c:"Wexford", lat:52.2400, lng:-6.9560, type:"Energy",  ghg:"0.9 MtCO₂e/yr" },
+  { n:"Midlands Agricultural Cluster", c:"Offaly",  lat:53.2730, lng:-7.4900, type:"Agriculture", ghg:"2.4 MtCO₂e/yr" }
+];
+
+function popupHtml(rows, title, county){
+  return `<div class="popup-title">${title}</div>
+    <div class="text-muted mb-1" style="font-size:.72rem">County ${county}</div>
+    ${rows.map(([k,v]) => `<div class="popup-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join("")}`;
+}
+
+// Monitoring stations layer
+const stationsLayer = L.layerGroup(STATIONS.map(s =>
+  L.marker([s.lat, s.lng], { icon: L.divIcon({ className:"", html:'<div class="station-icon"></div>', iconSize:[14,14], iconAnchor:[7,7] }) })
+   .bindPopup(popupHtml([
+      ["GHG Trend", s.trend],
+      ["O₃", `${s.o3} µg/m³`], ["PM2.5", `${s.pm} µg/m³`], ["NOx", `${s.nox} µg/m³`],
+      ["Policy Impact Score", `<span class="badge-score">${s.score} / 100</span>`]
+    ], s.n, s.c))
+));
+
+// Emission hotspots layer
+const hotspotsLayer = L.layerGroup(HOTSPOTS.map(h =>
+  L.marker([h.lat, h.lng], { icon: L.divIcon({ className:"", html:'<div class="hotspot-icon"></div>', iconSize:[0,0] }) })
+   .bindPopup(popupHtml([["Sector", h.type], ["Estimated GHG", h.ghg], ["Status", "Monitored emission source"]], h.n, h.c))
+));
+
+// Air quality circle markers
+function aqColor(v){ return v < 9 ? "#1B7F4D" : v < 11 ? "#7FB54A" : v < 13 ? "#E8A33D" : "#C84B3C"; }
+const airQualityLayer = L.layerGroup(STATIONS.map(s =>
+  L.circleMarker([s.lat, s.lng], {
+    radius: 6 + s.pm, color:"#fff", weight:1.5,
+    fillColor: aqColor(s.pm), fillOpacity:.65
+  }).bindPopup(popupHtml([
+      ["PM2.5", `${s.pm} µg/m³`], ["O₃", `${s.o3} µg/m³`], ["NOx", `${s.nox} µg/m³`],
+      ["WHO 2021 PM2.5 guideline", "5 µg/m³ annual"]
+    ], `Air quality — ${s.c}`, s.c))
+));
+
+// Simulated heatmap overlay (graduated translucent circles)
+const HEAT = [
+  [53.35,-6.30,26000,.34],[53.34,-6.26,16000,.30],[51.90,-8.47,22000,.30],[51.90,-8.40,12000,.26],
+  [52.66,-8.62,18000,.27],[53.27,-7.49,30000,.22],[52.25,-7.11,15000,.22],[53.27,-9.05,14000,.18],
+  [54.27,-8.47,12000,.15],[54.95,-7.73,12000,.13],[52.60,-9.42,17000,.30],[52.62,-9.06,13000,.24]
+];
+const heatLayer = L.layerGroup(HEAT.map(([lat,lng,r,o]) =>
+  L.circle([lat,lng], { radius:r, stroke:false, fillColor:"#C84B3C", fillOpacity:o, interactive:false })
+  .bindPopup("Simulated emission-intensity area")
+));
+
+// Policy impact regions
+const regionStyle = s => ({ color:"#00843D", weight:1.5, fillColor:"#00843D", fillOpacity:.10, dashArray:"5 4" });
+const policyRegionsLayer = L.layerGroup([
+  L.circle([53.40,-6.40], { radius:42000, ...regionStyle() }).bindPopup(popupHtml(
+    [["Region","Greater Dublin"],["Post-policy change","−15.2% transport emissions"],["Lead measure","EV incentives & BusConnects"]],
+    "Policy Impact Region — East","Dublin / Kildare / Meath")),
+  L.circle([51.95,-8.50], { radius:38000, ...regionStyle() }).bindPopup(popupHtml(
+    [["Region","Cork Metropolitan"],["Post-policy change","−11.8% energy emissions"],["Lead measure","Offshore wind & retrofit"]],
+    "Policy Impact Region — South","Cork")),
+  L.circle([53.30,-8.90], { radius:36000, ...regionStyle() }).bindPopup(popupHtml(
+    [["Region","Galway / West"],["Post-policy change","−8.4% residential emissions"],["Lead measure","Retrofit & heat pumps"]],
+    "Policy Impact Region — West","Galway"))
+]);
+
+stationsLayer.addTo(map); hotspotsLayer.addTo(map); airQualityLayer.addTo(map);
+
+L.control.layers(null, {
+  "Monitoring Stations": stationsLayer,
+  "Emission Sources": hotspotsLayer,
+  "Air Quality": airQualityLayer,
+  "Heatmap Overlay": heatLayer,
+  "Policy Impact Regions": policyRegionsLayer
+}, { collapsed:false, position:"topright" }).addTo(map);
+
+// Dynamic legend
+const legend = L.control({ position:"bottomright" });
+legend.onAdd = () => {
+  const div = L.DomUtil.create("div","map-legend");
+  div.innerHTML = `<strong style="font-size:.74rem;color:#16324F">Legend</strong><br>
+    <span class="dot" style="background:#0E8C8A"></span>EPA monitoring station<br>
+    <span class="dot" style="background:#C84B3C;border-radius:4px"></span>Emission hotspot<br>
+    <span class="dot" style="background:#1B7F4D"></span>PM2.5 good &nbsp;<span class="dot" style="background:#E8A33D"></span>moderate &nbsp;<span class="dot" style="background:#C84B3C"></span>poor<br>
+    <span class="dot" style="background:rgba(0,132,61,.25);outline:1px dashed #00843D"></span>Policy impact region`;
+  return div;
+};
+legend.addTo(map);
+
+// Fullscreen control
+const FsControl = L.Control.extend({
+  options:{ position:"topleft" },
+  onAdd(){
+    const btn = L.DomUtil.create("button","map-fs-btn");
+    btn.innerHTML = '<i class="bi bi-arrows-fullscreen"></i>';
+    btn.title = "Toggle fullscreen"; btn.setAttribute("aria-label","Toggle fullscreen map");
+    L.DomEvent.on(btn,"click", e => {
+      L.DomEvent.stop(e);
+      const el = document.getElementById("map");
+      if (!document.fullscreenElement) el.requestFullscreen?.().then(() => setTimeout(() => map.invalidateSize(), 250));
+      else document.exitFullscreen?.();
+    });
+    return btn;
+  }
+});
+map.addControl(new FsControl());
+document.addEventListener("fullscreenchange", () => setTimeout(() => map.invalidateSize(), 250));
+
+/* ------------- 4b. Raster overlay (cascading Year/Sector/Parameter) ------------- */
+(function rasterOverlay(){
+  const yearSel   = document.getElementById("rasterYear");
+  const sectorSel = document.getElementById("rasterSector");
+  const paramSel  = document.getElementById("rasterParam");
+  const clearBtn  = document.getElementById("rasterClear");
+  const statusEl  = document.getElementById("rasterStatus");
+  if (!yearSel) return;
+
+  let CATALOG = {};            // { year: { sector: { parameter: filename } } }
+  let overlay = null;          // current L.imageOverlay
+  let colorbar = null;         // current legend control
+  let reqToken = 0;            // guards against out-of-order async responses
+
+  const PLACEHOLDER = txt => { const o = document.createElement("option");
+    o.value = ""; o.textContent = txt; o.disabled = true; o.selected = true; return o; };
+
+  function setStatus(msg, warn){
+    statusEl.textContent = msg || "";
+    statusEl.classList.toggle("warn", !!warn);
+  }
+
+  // Pretty-print the tiny / large values these rasters carry.
+  function fmtVal(v){
+    if (v === 0) return "0";
+    const a = Math.abs(v);
+    if (a < 1e-3 || a >= 1e5) return v.toExponential(2);
+    return String(+v.toPrecision(3));
+  }
+
+  function fill(select, items, placeholder){
+    select.innerHTML = "";
+    select.appendChild(PLACEHOLDER(placeholder));
+    items.forEach(it => {
+      const o = document.createElement("option");
+      o.value = it; o.textContent = it.replace(/_/g, " ");
+      select.appendChild(o);
+    });
+    select.disabled = items.length === 0;
+  }
+
+  // ---- cascading population ----
+  function populateYears(){
+    const years = Object.keys(CATALOG).sort();
+    fill(yearSel, years, "Select year");
+    yearSel.disabled = years.length === 0;
+    resetSectors();
+  }
+  function resetSectors(){
+    sectorSel.innerHTML = ""; sectorSel.appendChild(PLACEHOLDER("Select sector"));
+    sectorSel.disabled = true; resetParams();
+  }
+  function resetParams(){
+    paramSel.innerHTML = ""; paramSel.appendChild(PLACEHOLDER("Select parameter"));
+    paramSel.disabled = true;
+  }
+
+  yearSel.addEventListener("change", () => {
+    const y = yearSel.value;
+    const sectors = y ? Object.keys(CATALOG[y] || {}).sort() : [];
+    fill(sectorSel, sectors, "Select sector");
+    resetParams();
+  });
+
+  sectorSel.addEventListener("change", () => {
+    const y = yearSel.value, s = sectorSel.value;
+    const params = (y && s) ? Object.keys((CATALOG[y] || {})[s] || {}).sort() : [];
+    fill(paramSel, params, "Select parameter");
+  });
+
+  paramSel.addEventListener("change", () => {
+    const y = yearSel.value, s = sectorSel.value, p = paramSel.value;
+    if (y && s && p) loadRaster(y, s, p);
+  });
+
+  clearBtn.addEventListener("click", () => {
+    removeOverlay();
+    if (yearSel.options.length) yearSel.selectedIndex = 0;
+    resetSectors();
+    setStatus("");
+  });
+
+  // ---- overlay management ----
+  function removeOverlay(){
+    if (overlay){ map.removeLayer(overlay); overlay = null; }
+    if (colorbar){ map.removeControl(colorbar); colorbar = null; }
+    clearBtn.disabled = true;
+  }
+
+  function buildColorbar(meta, title){
+    const ctrl = L.control({ position:"bottomleft" });
+    ctrl.onAdd = () => {
+      const div = L.DomUtil.create("div", "raster-colorbar");
+      const gradient = `linear-gradient(to top, ${meta.stops.join(",")})`;
+      const isLog = meta.scale === "log" && meta.vmin > 0 && meta.vmax > 0;
+      // On a log scale the gradient's visual midpoint is the geometric mean.
+      const mid = isLog ? Math.sqrt(meta.vmin * meta.vmax)
+                        : (meta.vmin + meta.vmax) / 2;
+      const note = isLog ? "Log scale · zero values masked"
+                         : "Rainbow scale · zero values masked";
+      div.innerHTML = `
+        <div class="cb-title">${title}</div>
+        <div class="cb-row">
+          <div class="cb-gradient" style="background:${gradient}"></div>
+          <div class="cb-ticks">
+            <span>${fmtVal(meta.vmax)}</span>
+            <span>${fmtVal(mid)}</span>
+            <span>${fmtVal(meta.vmin)}</span>
+          </div>
+        </div>
+        <div class="cb-note">${note}</div>`;
+      return div;
+    };
+    return ctrl;
+  }
+
+  function loadRaster(year, sector, parameter){
+    const token = ++reqToken;
+    const qs = `year=${encodeURIComponent(year)}&sector=${encodeURIComponent(sector)}&parameter=${encodeURIComponent(parameter)}`;
+    setStatus("Loading raster…");
+    clearBtn.disabled = false;
+
+    fetch(`/api/raster/meta/?${qs}`)
+      .then(r => r.json())
+      .then(meta => {
+        if (token !== reqToken) return;            // a newer selection won
+        if (!meta.ok){ setStatus(meta.detail || "Could not load raster.", true); return; }
+
+        removeOverlay();
+        const label = `${parameter} · ${year} ${sector.replace(/_/g, " ")}`;
+
+        if (meta.all_zero){
+          setStatus(`${label}: no non-zero values to display (all cells masked).`, true);
+          map.fitBounds(meta.bounds, { padding:[20,20], maxZoom:9 });
+          clearBtn.disabled = false;
+          return;
+        }
+
+        const imgUrl = `/api/raster/image/?${qs}`;
+        overlay = L.imageOverlay(imgUrl, meta.bounds, { opacity:0.8, interactive:false });
+        overlay.addTo(map);
+        colorbar = buildColorbar(meta, label);
+        colorbar.addTo(map);
+        map.fitBounds(meta.bounds, { padding:[20,20], maxZoom:9 });
+        clearBtn.disabled = false;
+        setStatus(`Showing ${label}`);
+      })
+      .catch(() => { if (token === reqToken) setStatus("Could not load raster.", true); });
+  }
+
+  // ---- init ----
+  yearSel.disabled = true;
+  fetch("/api/rasters/")
+    .then(r => r.json())
+    .then(data => {
+      CATALOG = data.catalog || {};
+      if (!Object.keys(CATALOG).length){ setStatus("No raster files found in data/Raster.", true); return; }
+      populateYears();
+    })
+    .catch(() => setStatus("Could not load the raster catalogue.", true));
+})();
+
+
+/* ---------------------- 5. Timeline ---------------------- */
+const track = document.getElementById("timelineTrack");
+POLICIES.forEach((p, i) => {
+  const btn = document.createElement("button");
+  btn.className = `tl-node tl-${p.phase}`;
+  btn.setAttribute("role","listitem");
+  btn.dataset.idx = i;
+  btn.dataset.phase = p.phase;
+  btn.innerHTML = `<span class="tl-dot"></span>
+    <span class="tl-year">${Math.round(p.y)}</span>
+    <span class="tl-name">${p.short}</span>`;
+  btn.title = `${p.name} — ${p.cat}`;
+  btn.addEventListener("click", () => selectPolicy(i));
+  track.appendChild(btn);
+});
+// widen the scroll track so ~40 nodes get breathing room
+track.style.minWidth = Math.max(2300, POLICIES.length * 96) + "px";
+
+// populate jurisdiction counts beside each checkbox
+["intl","eu","natl"].forEach(ph => {
+  const el = document.querySelector(`.cnt[data-phase="${ph}"]`);
+  if (el) el.textContent = POLICIES.filter(p => p.phase === ph).length;
+});
+
+function selectPolicy(i){
+  const p = POLICIES[i];
+  if (!p) return;
+  document.querySelectorAll(".tl-node").forEach(n => n.classList.toggle("active", +n.dataset.idx === i));
+
+  document.getElementById("piName").innerHTML =
+    `<i class="bi bi-clipboard2-check me-1" style="color:${p.color}"></i>${p.name}`;
+  document.getElementById("piYear").textContent = Math.round(p.y);
+  document.getElementById("piCategory").textContent = `${p.cat} · ${p.type || "—"}`;
+  document.getElementById("piAgency").textContent = p.agency || "—";
+  document.getElementById("piSectors").textContent = p.sector || "—";
+
+  const dir = p.direction || "—";
+  const dDir = document.getElementById("piDirection");
+  dDir.textContent = dir; dDir.style.color = dirColor(dir);
+  document.getElementById("piJuris").textContent = p.cat;
+  document.getElementById("piJuris").style.color = p.color;
+  document.getElementById("piInstrument").textContent = p.instrument || "—";
+  document.getElementById("piOutcome").textContent = p.outcome || "—";
+
+  document.getElementById("piNarrativeText").textContent = p.description || "";
+  document.getElementById("piWhere").textContent =
+    `${p.cat} ${(/target/i.test(p.type) || p.phase === "target") ? "target" : (p.type || "policy").toLowerCase()} led by ${p.agency || "—"}, affecting ${(p.sector || "cross-cutting").toLowerCase()}.`;
+  document.getElementById("piStatus").textContent = p.outcome || "—";
+}
+// initial selection: the flagship 2019 plan, else the first policy
+selectPolicy(Math.max(0, POLICIES.findIndex(p => p.name === "Climate Action Plan 2019")));
+
+/* Jurisdiction checkboxes: toggle chart markers + dim timeline nodes */
+function applyPolicyDim(){
+  const phases = checkedPhases();
+  document.querySelectorAll(".tl-node").forEach(n => {
+    const ph = n.dataset.phase;
+    n.style.opacity = (ph === "target" || phases.has(ph)) ? "1" : ".25";
+  });
+}
+document.querySelectorAll(".policy-cat-cb").forEach(cb =>
+  cb.addEventListener("change", () => {
+    if (chart) chart.update();   // redraw the policy guide-lines
+    applyPolicyDim();
+  }));
+
+/* ---------------------- 6. Public participation (now on Feedback tab) ---------------------- */
+const goFeedbackBtn = document.getElementById("goFeedbackBtn");
+if (goFeedbackBtn) goFeedbackBtn.addEventListener("click", () => activateTab("feedback"));
+
+/* ---------------------- 7. Filters wiring ---------------------- */
+function syncYearLabels(){
+  const f = document.getElementById("yearFrom"), t = document.getElementById("yearTo");
+  if (+f.value > +t.value) [f.value, t.value] = [t.value, f.value];
+  document.getElementById("yearFromLbl").textContent = f.value;
+  document.getElementById("yearToLbl").textContent = t.value;
+}
+["yearFrom","yearTo"].forEach(id =>
+  document.getElementById(id).addEventListener("input", () => { syncYearLabels(); applyYearWindow(); }));
+document.querySelectorAll("input[name=indicator]").forEach(r =>
+  r.addEventListener("change", buildChart));
+document.querySelectorAll(".sector-cb").forEach(cb =>
+  cb.addEventListener("change", e => {
+    if (e.target.value === "National Total" && e.target.checked)
+      document.querySelectorAll(".sector-cb").forEach(o => { if (o.value !== "National Total") o.checked = false; });
+    else if (e.target.checked)
+      document.getElementById("sNatl").checked = false;
+    buildChart();
+  }));
+document.querySelectorAll(".poll-cb").forEach(cb =>
+  cb.addEventListener("change", () => {
+    const on = [...document.querySelectorAll(".poll-cb:checked")].map(c => c.value);
+    // Toggle air-quality layer relevance hint via legend only (visual prototype behaviour)
+    if (!on.length) map.removeLayer(airQualityLayer);
+    else if (!map.hasLayer(airQualityLayer)) airQualityLayer.addTo(map);
+  }));
+
+/* ---------------------- 9. Tab navigation ---------------------- */
+const tabButtons = document.querySelectorAll(".tab-nav .tab-btn");
+const tabPanes = {
+  explorer: document.getElementById("tab-explorer"),
+  about: document.getElementById("tab-about"),
+  feedback: document.getElementById("tab-feedback"),
+};
+function activateTab(name){
+  tabButtons.forEach(b => {
+    const on = b.dataset.tab === name;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  Object.entries(tabPanes).forEach(([key, pane]) => {
+    if (pane) pane.classList.toggle("active", key === name);
+  });
+  // Leaflet needs a size recalculation when its container becomes visible.
+  if (name === "explorer" && typeof map !== "undefined" && map) {
+    setTimeout(() => map.invalidateSize(), 60);
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+tabButtons.forEach(b =>
+  b.addEventListener("click", () => activateTab(b.dataset.tab)));
+
+/* ---------------------- 10. Feedback form (Excel + GitHub) ---------------------- */
+const fbSession = { n: 0, sum: 0, pos: 0 };
+function renderFbStats(){
+  document.getElementById("fbStatResponses").textContent = fbSession.n;
+  document.getElementById("fbStatAvg").textContent =
+    fbSession.n ? (fbSession.sum / fbSession.n).toFixed(1) : "\u2013";
+  document.getElementById("fbStatPos").textContent =
+    fbSession.n ? Math.round(100 * fbSession.pos / fbSession.n) + "%" : "\u2013";
+}
+const fbEff = document.getElementById("fbEffectiveness");
+fbEff.addEventListener("input", e =>
+  document.getElementById("fbEffectivenessVal").textContent = e.target.value);
+const fbComment = document.getElementById("fbCommentBox");
+fbComment.addEventListener("input", e =>
+  document.getElementById("fbCharCount").textContent =
+    `${e.target.value.length} / 1000 characters`);
+
+function setFbStatus(kind, html){
+  const el = document.getElementById("fbStatusMsg");
+  el.className = "fb-status " + kind;
+  el.innerHTML = html;
+}
+
+document.getElementById("fbSubmitBtn").addEventListener("click", async () => {
+  const btn = document.getElementById("fbSubmitBtn");
+  const payload = {
+    policy_reduced_emissions:
+      document.querySelector("input[name=fbReduced]:checked").value,
+    effectiveness_rating: document.getElementById("fbEffectiveness").value,
+    most_affected_sector: document.getElementById("fbSectorSel").value,
+    respondent_role: document.getElementById("fbRoleSel").value,
+    comments: document.getElementById("fbCommentBox").value.trim(),
+  };
+
+  btn.disabled = true;
+  setFbStatus("sending",
+    '<span class="spinner-border spinner-border-sm"></span>Submitting&hellip;');
+
+  try {
+    const resp = await fetch("/api/feedback/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const result = await resp.json().catch(() => ({}));
+    if (resp.ok && result.ok){
+      // Update session counters
+      fbSession.n += 1;
+      fbSession.sum += +payload.effectiveness_rating;
+      if (payload.policy_reduced_emissions === "Yes") fbSession.pos += 1;
+      renderFbStats();
+      document.getElementById("fbCommentBox").value = "";
+      document.getElementById("fbCharCount").textContent = "0 / 1000 characters";
+      const where = result.storage === "github"
+        ? "saved to GitHub workbook"
+        : "recorded";
+      setFbStatus("ok",
+        `<i class="bi bi-check-circle-fill"></i>Thank you \u2014 your response was ${where}.`);
+      setTimeout(() => {
+        const el = document.getElementById("fbStatusMsg");
+        el.className = "fb-status"; el.innerHTML = "";
+      }, 5000);
+    } else {
+      setFbStatus("err",
+        `<i class="bi bi-exclamation-triangle-fill"></i>${
+          (result && result.detail) || "Submission failed. Please try again."}`);
+    }
+  } catch (err){
+    setFbStatus("err",
+      '<i class="bi bi-exclamation-triangle-fill"></i>Network error \u2014 could not reach the server.');
+  } finally {
+    btn.disabled = false;
+  }
+});
+renderFbStats();
+
+/* ---------------------- 11. Init ---------------------- */
+buildChart();
+applyYearWindow();
+</script>
+</body>
+</html>

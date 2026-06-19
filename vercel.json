@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "inpact_platform/wsgi.py", "use": "@vercel/python" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "inpact_platform/wsgi.py" }
+  ]
+}
